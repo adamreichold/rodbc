@@ -175,18 +175,45 @@ inline Statement& Statement::bindCol( String< Size >& col )
     return doBindStringCol( col.val_, Size, &col.ind_ );
 }
 
+namespace detail
+{
+
+struct ParamBinder
+{
+    Statement* const stmt;
+
+    template< typename Param >
+    void operator() ( const Param& param ) const
+    {
+        stmt->bindParam( param );
+    }
+};
+
+struct ColBinder
+{
+    Statement* const stmt;
+
+    template< typename Col >
+    void operator() ( Col& col ) const
+    {
+        stmt->bindCol( col );
+    }
+};
+
+}
+
 template< typename Params >
 inline void Statement::bindParams( const Params& params )
 {
     rebindParams();
-    boost::fusion::for_each( params, [this]( const auto& param ) { this->bindParam( param ); } );
+    boost::fusion::for_each( params, detail::ParamBinder{ this } );
 }
 
 template< typename Cols >
 inline void Statement::bindCols( Cols& cols )
 {
     rebindCols();
-    boost::fusion::for_each( cols, [this]( auto& col ) { this->bindCol( col ); } );
+    boost::fusion::for_each( cols, detail::ColBinder{ this } );
 }
 
 template< typename Params >

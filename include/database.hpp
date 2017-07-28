@@ -54,7 +54,7 @@ protected:
     Session& openSession();
 
     template< typename Action >
-    auto closeDeadSession( Action action );
+    auto closeDeadSession( Action action ) -> decltype( action() );
 
 private:
     const char* const connStr_;

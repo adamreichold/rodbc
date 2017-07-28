@@ -14,11 +14,11 @@ namespace detail
 {
 
 template< typename Type >
-constexpr auto IsNone = std::is_same< Type, None >::value;
+struct IsNone : public std::is_same< Type, None > {};
 template< typename Type >
-using EnableIfNone = typename std::enable_if< IsNone< Type > >::type;
+using EnableIfNone = typename std::enable_if< IsNone< Type >::value >::type;
 template< typename Type >
-using EnableIfNotNone = typename std::enable_if< !IsNone< Type > >::type;
+using EnableIfNotNone = typename std::enable_if< !IsNone< Type >::value >::type;
 
 }
 

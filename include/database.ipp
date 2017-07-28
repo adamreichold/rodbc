@@ -76,7 +76,7 @@ inline typename Database< Statements >::Session& Database< Statements >::openSes
 
 template< typename Statements >
 template< typename Action >
-inline auto Database< Statements >::closeDeadSession( Action action )
+inline auto Database< Statements >::closeDeadSession( Action action ) -> decltype( action() )
 {
     try
     {
