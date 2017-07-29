@@ -36,5 +36,10 @@ install(
     FILES_MATCHING PATTERN *.hpp|*.ipp
 )
 
+set( CPACK_PACKAGE_VERSION 0.1 )
+set( CPACK_RPM_PACKAGE_LICENSE LGPLv3+ )
+set( CPACK_RPM_PACKAGE_URL https://github.com/adamreichold/rodbc )
+include( CPack )
+
 enable_testing()
 add_subdirectory( test )
