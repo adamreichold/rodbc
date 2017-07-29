@@ -115,7 +115,7 @@ bool Exception::isTimeout() const noexcept
 
 bool Exception::isConstraintViolation() const noexcept
 {
-    const auto odbcIntegrityConstraintViolation = std::strcmp( state_, "23000" ) == 0;
+    const auto odbcIntegrityConstraintViolation = std::strncmp( state_, "23", 2 ) == 0;
     const auto sqliteConstraint = std::strcmp( state_, "HY000" ) == 0 && nativeError_ == 19;
 
     return odbcIntegrityConstraintViolation || sqliteConstraint;

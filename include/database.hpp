@@ -39,7 +39,6 @@ protected:
     {
     protected:
         BoundTransaction( Database& database );
-        BoundTransaction( BoundTransaction&& );
 
         void doCommit();
 
@@ -62,6 +61,9 @@ protected:
         bool doFetch( Statement& stmt );
     };
 
+    template< typename Action >
+    void withStatements( Action action );
+
 private:
     const char* const connStr_;
 
@@ -78,7 +80,7 @@ private:
     Session& openSession();
 
     template< typename Action >
-    auto closeDeadSession( Action action ) -> decltype( action() );
+    auto closeDeadSession( Action action ) -> decltype ( action() );
 };
 
 }

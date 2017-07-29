@@ -39,13 +39,6 @@ inline Database< Statements >::BoundTransaction::BoundTransaction( Database& dat
 }
 
 template< typename Statements >
-inline Database< Statements >::BoundTransaction::BoundTransaction( BoundTransaction&& that )
-: database_{ that.database_ }
-, transaction_{ std::move( that.transaction_ ) }
-{
-}
-
-template< typename Statements >
 inline void Database< Statements >::BoundTransaction::doCommit()
 {
     database_.closeDeadSession( [&]() { transaction_.commit(); } );
@@ -73,6 +66,13 @@ inline bool Database< Statements >::BoundStatement::doFetch( Statement& stmt )
 }
 
 template< typename Statements >
+template< typename Action >
+inline void Database< Statements >::withStatements( Action action )
+{
+    closeDeadSession( [&]() { action( openSession().stmts ); } );
+}
+
+template< typename Statements >
 inline Database< Statements >::Session::Session( const char* const connStr )
 : conn{ connStr }
 , stmts{ conn }
@@ -96,7 +96,7 @@ inline typename Database< Statements >::Session& Database< Statements >::openSes
 
 template< typename Statements >
 template< typename Action >
-inline auto Database< Statements >::closeDeadSession( Action action ) -> decltype( action() )
+inline auto Database< Statements >::closeDeadSession( Action action ) -> decltype ( action() )
 {
     try
     {

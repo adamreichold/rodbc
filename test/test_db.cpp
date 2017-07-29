@@ -22,16 +22,12 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/test/unit_test.hpp>
 
-struct TestDb
+struct FoobarFixture
 {
     foobar::Database db{ RODBC_TEST_CONN_STR };
-
-    TestDb()
-    {
-    }
 };
 
-BOOST_FIXTURE_TEST_SUITE( testDb, TestDb )
+BOOST_FIXTURE_TEST_SUITE( foobarDb, FoobarFixture )
 
 BOOST_AUTO_TEST_CASE( canCreateTables )
 {
@@ -116,6 +112,75 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
         }
 
         BOOST_CHECK( !stmt.fetch() );
+    }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+struct BarfooFixture
+{
+    std::unique_ptr< barfoo::Database > db{ new barfoo::DatabaseImpl{ RODBC_TEST_CONN_STR } };
+};
+
+BOOST_FIXTURE_TEST_SUITE( barfooDb, BarfooFixture )
+
+BOOST_AUTO_TEST_CASE( canInsertAndSelectFoos )
+{
+    auto trans = db->startTransaction();
+
+    {
+        for ( int i = 0; i < 256; ++i )
+        {
+            db->insertFoo( { i, i * i, i * i * i } );
+        }
+    }
+
+    {
+        const auto foos = db->selectAllFoo();
+
+        BOOST_CHECK_EQUAL( 256, foos.size() );
+
+        for ( const auto& foo : foos )
+        {
+            BOOST_CHECK_GE( foo.x, 0 );
+            BOOST_CHECK_LT( foo.x, 256 );
+            BOOST_CHECK_EQUAL( foo.y, foo.x * foo.x );
+            BOOST_CHECK_EQUAL( foo.z, foo.x * foo.x * foo.x );
+        }
+    }
+}
+
+
+BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
+{
+    auto trans = db->startTransaction();
+
+    {
+        std::vector< barfoo::Bar > bars;
+        bars.resize( 2048 );
+
+        for ( int i = 0; i < 2048; ++i )
+        {
+            bars[ i ].a = 1.0f * i;
+            bars[ i ].b = 2.0f * i;
+            bars[ i ].c = 3.0f * i;
+        }
+
+        db->insertBar( bars );
+    }
+
+    {
+        const auto bars = db->selectBarByA( 512.0f );
+
+        BOOST_CHECK_EQUAL( 512, bars.size() );
+
+        for ( const auto& bar : bars )
+        {
+            BOOST_CHECK_GE( bar.a, 0.0f );
+            BOOST_CHECK_LT( bar.a, 4096.0f );
+            BOOST_CHECK_CLOSE( bar.b - bar.a, bar.a, 0.1 );
+            BOOST_CHECK_CLOSE( bar.c - bar.b, bar.a, 0.1 );
+        }
     }
 }
 

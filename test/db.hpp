@@ -24,6 +24,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/fusion/include/define_struct.hpp>
 
+#include <memory>
 #include <vector>
 
 BOOST_FUSION_DEFINE_STRUCT(
@@ -45,9 +46,8 @@ namespace foobar
 
 struct Statements;
 
-class Database : public rodbc::Database< Statements >
+struct Database : private rodbc::Database< Statements >
 {
-public:
     Database( const char* const connStr );
 
     struct Transaction : BoundTransaction
@@ -95,6 +95,58 @@ public:
         void exec();
         bool fetch();
     };
+};
+
+}
+
+namespace barfoo
+{
+
+struct Foo
+{
+    int x, y, z;
+};
+
+struct Bar
+{
+    float a, b, c;
+};
+
+struct Transaction
+{
+    virtual ~Transaction();
+
+    virtual void commit() = 0;
+};
+
+struct Database
+{
+    virtual ~Database();
+
+    virtual std::unique_ptr< Transaction > startTransaction() = 0;
+
+    virtual void insertFoo( const Foo& foo ) = 0;
+    virtual std::vector< Foo > selectAllFoo() = 0;
+    virtual void insertBar( const std::vector< Bar >& bar ) = 0;
+    virtual std::vector< Bar > selectBarByA( const float a ) = 0;
+};
+
+struct Statements;
+
+struct DatabaseImpl final : Database, private rodbc::Database< Statements >
+{
+    DatabaseImpl( const char* const connStr );
+    ~DatabaseImpl();
+
+    std::unique_ptr< Transaction > startTransaction() override;
+
+    void insertFoo( const Foo& foo ) override;
+    std::vector< Foo > selectAllFoo() override;
+    void insertBar( const std::vector< Bar >& bars ) override;
+    std::vector< Bar > selectBarByA( const float a ) override;
+
+private:
+    struct TransactionImpl;
 };
 
 }
