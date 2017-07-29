@@ -1,0 +1,4 @@
+* extend README.md
+* add tests for types, statement and typed_statement modules
+* add packaging, probably using CPack, at least for RPM and DEB
+* add example of database implementation using virtual methods

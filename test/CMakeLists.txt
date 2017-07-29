@@ -1,4 +1,4 @@
-add_definitions( "'-DRODBC_TEST_CONN_STR=\"Driver=SQLITE3;Database=:memory:;\"'" )
+set( CMAKE_CURRENT_SOURCE_DIR ON )
 
 find_package( Boost 1.60 COMPONENTS unit_test_framework REQUIRED )
 include_directories( ${Boost_INCLUDE_DIR} )
@@ -10,6 +10,8 @@ function( add_test_executable test_name executable_name source )
     target_link_libraries( ${executable_name} rodbc ${Boost_LIBRARIES} )
     add_test( ${test_name} ${executable_name} )
 endfunction()
+
+add_definitions( "'-DRODBC_TEST_CONN_STR=\"Driver=SQLITE3;Database=:memory:;\"'" )
 
 add_test_executable( types test_types test_types.cpp )
 add_test_executable( connection test_conn test_conn.cpp )
