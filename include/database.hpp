@@ -62,7 +62,9 @@ protected:
         bool doFetch( Statement& stmt );
     };
 
-protected:
+private:
+    const char* const connStr_;
+
     struct Session
     {
         Session( const char* const connStr );
@@ -71,14 +73,12 @@ protected:
         Statements stmts;
     };
 
+    boost::thread_specific_ptr< Session > session_;
+
     Session& openSession();
 
     template< typename Action >
     auto closeDeadSession( Action action ) -> decltype( action() );
-
-private:
-    const char* const connStr_;
-    boost::thread_specific_ptr< Session > session_;
 };
 
 }

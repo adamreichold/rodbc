@@ -25,6 +25,20 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/fusion/include/tuple.hpp>
 
+namespace
+{
+
+template< typename Value >
+void resize( std::vector< Value >& values, const std::size_t size )
+{
+    values.resize( size );
+    values.shrink_to_fit();
+
+    assert( values.size() == values.capacity() );
+}
+
+}
+
 namespace foobar
 {
 
@@ -119,8 +133,7 @@ Database::SelectBarByA::SelectBarByA( Database& database, const std::size_t batc
 , a{ stmts_.a.get() }
 , bar{ stmts_.bar }
 {
-    stmts_.bar.resize( batchSize );
-    stmts_.bar.shrink_to_fit();
+    resize( stmts_.bar, batchSize );
 }
 
 void Database::SelectBarByA::exec()
