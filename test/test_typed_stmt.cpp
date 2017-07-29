@@ -20,8 +20,14 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "typed_statement.hpp"
 
+#include "util.hpp"
+
 #include <boost/test/unit_test.hpp>
+
+BOOST_FIXTURE_TEST_SUITE( typedStmt, Fixture )
 
 BOOST_AUTO_TEST_CASE( dummy )
 {
 }
+
+BOOST_AUTO_TEST_SUITE_END()

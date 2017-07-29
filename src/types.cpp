@@ -81,18 +81,49 @@ const char* c_str( char* const val, const long ind )
 }
 
 Exception::Exception( const short type, void* const handle )
+: state_{ "00000" }
+, nativeError_{ 0 }
 {
-    std::array< char, 5 + 1 > state;
-    std::array< char, 255 + 1 > message;
+    short messageLength;
 
-    const auto rc = ::SQLGetDiagRec( type, handle, 1, (SQLCHAR*) state.data(), nullptr, (SQLCHAR*) message.data(), message.max_size(), nullptr );
+    if ( SQL_SUCCEEDED( ::SQLGetDiagRec( type, handle, 1, (SQLCHAR*) state_, &nativeError_, nullptr, 0, &messageLength ) ) )
+    {
+        message_.resize( messageLength + 1 );
 
-    what_.assign( SQL_SUCCEEDED( rc ) ? message.data() : "unknown ODBC error" );
+        ::SQLGetDiagRec( type, handle, 1, nullptr, nullptr, (SQLCHAR*) &message_.front(), message_.size(), nullptr );
+    }
+    else
+    {
+        message_ = "ODBC diagnostic record could not be retrieved.";
+    }
+}
+
+const char* Exception::state() const noexcept
+{
+    return state_;
+}
+
+int Exception::nativeError() const noexcept
+{
+    return nativeError_;
+}
+
+bool Exception::isTimeout() const noexcept
+{
+    return std::strcmp( state_, "HYT00" ) == 0;
+}
+
+bool Exception::isConstraintViolation() const noexcept
+{
+    const auto odbcIntegrityConstraintViolation = std::strcmp( state_, "23000" ) == 0;
+    const auto sqliteConstraint = std::strcmp( state_, "HY000" ) == 0 && nativeError_ == 19;
+
+    return odbcIntegrityConstraintViolation || sqliteConstraint;
 }
 
 const char* Exception::what() const noexcept
 {
-    return what_.c_str();
+    return message_.c_str();
 }
 
 std::string Timestamp::str() const

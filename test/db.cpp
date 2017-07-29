@@ -23,21 +23,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include "database.ipp"
 #include "typed_statement.hpp"
 
+#include "util.hpp"
+
 #include <boost/fusion/include/tuple.hpp>
-
-namespace
-{
-
-template< typename Value >
-void resize( std::vector< Value >& values, const std::size_t size )
-{
-    values.resize( size );
-    values.shrink_to_fit();
-
-    assert( values.size() == values.capacity() );
-}
-
-}
 
 namespace foobar
 {
@@ -46,8 +34,8 @@ struct CreateTables
 {
     CreateTables( rodbc::Connection& conn )
     {
-        rodbc::Statement{ conn, "CREATE TABLE IF NOT EXISTS foo (x INT, y INT, z INT);" }.exec();
-        rodbc::Statement{ conn, "CREATE TABLE IF NOT EXISTS bar (a FLOAT, b FLOAT, c FLOAT);" }.exec();
+        createTable( conn, "foo", "x INT, y INT, z INT" );
+        createTable( conn, "bar", "a FLOAT, b FLOAT, c FLOAT" );
     }
 };
 
@@ -133,7 +121,7 @@ Database::SelectBarByA::SelectBarByA( Database& database, const std::size_t batc
 , a{ stmts_.a.get() }
 , bar{ stmts_.bar }
 {
-    resize( stmts_.bar, batchSize );
+    resizeRowSet( stmts_.bar, batchSize );
 }
 
 void Database::SelectBarByA::exec()

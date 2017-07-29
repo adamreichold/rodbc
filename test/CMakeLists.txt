@@ -11,7 +11,8 @@ function( add_test_executable test_name executable_name source )
     add_test( ${test_name} ${executable_name} )
 endfunction()
 
-add_definitions( "'-DRODBC_TEST_CONN_STR=\"Driver=SQLITE3;Database=:memory:;\"'" )
+set( RODBC_TEST_CONN_STR "\"Driver=SQLITE3;Database=:memory:;\"" CACHE STRING "ODBC connection string used to execute unit tests." )
+add_definitions( "'-DRODBC_TEST_CONN_STR=${RODBC_TEST_CONN_STR}'" )
 
 add_test_executable( types test_types test_types.cpp )
 add_test_executable( connection test_conn test_conn.cpp )

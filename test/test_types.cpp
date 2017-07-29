@@ -20,17 +20,36 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "types.hpp"
 
+#include "util.hpp"
+
 #include <boost/test/unit_test.hpp>
 
-BOOST_AUTO_TEST_SUITE( Timestamp )
+BOOST_AUTO_TEST_SUITE( timestamp )
 
 BOOST_AUTO_TEST_CASE( canFormatTheEpoch )
 {
     const auto epoch = rodbc::Timestamp{
         1970, 1, 1, 0, 0, 0, 0
-    }.str();
+    };
 
-    BOOST_CHECK_EQUAL( "1970-01-01T00:00:00.000Z", epoch );
+    BOOST_CHECK_EQUAL( "1970-01-01T00:00:00.000Z", epoch.str() );
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE( exception, Fixture )
+
+BOOST_AUTO_TEST_CASE( canDetectConstraintViolation )
+{
+    createTable( conn, "n", "n INT PRIMARY KEY" );
+
+    rodbc::Statement stmt{ conn, "INSERT INTO n (n) VALUES (?);" };
+
+    const int n = 1;
+    stmt.bindParam( n );
+
+    BOOST_CHECK_NO_THROW( stmt.exec() );
+    BOOST_CHECK_EXCEPTION( stmt.exec(), rodbc::Exception, std::mem_fn( &rodbc::Exception::isConstraintViolation ) );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

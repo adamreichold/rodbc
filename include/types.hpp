@@ -44,10 +44,18 @@ class Exception : public std::exception
 public:
     Exception( const short type, void* const handle );
 
+    const char* state() const noexcept;
+    int nativeError() const noexcept;
+
+    bool isTimeout() const noexcept;
+    bool isConstraintViolation() const noexcept;
+
     const char* what() const noexcept override;
 
 private:
-    std::string what_;
+    char state_[ 5 + 1 ];
+    int nativeError_;
+    std::string message_;
 };
 
 template< std::size_t Size >
