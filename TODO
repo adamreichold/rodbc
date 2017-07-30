@@ -1,3 +1,2 @@
-* extend README.md describing rationale, building, testing and usage
-* add tests for types, statement and typed_statement modules
-* add Doxygen documentation to headers
+* add further tests for types, statement and typed_statement modules
+* add Doxygen documentation including usage examples to headers
