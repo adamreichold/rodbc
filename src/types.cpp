@@ -42,19 +42,32 @@ void assign( char* const dst, long& dst_ind, const char* const src, const long s
 
 void assign( char* const dst, long& dst_ind, const std::string& src )
 {
-    std::memcpy( dst, src.data(), src.size() );
-
     dst_ind = src.size();
+
+    std::memcpy( dst, src.data(), dst_ind );
 }
 
-bool compare( const char* const lhs, const long lhs_ind, const char* const rhs, const long rhs_ind )
+
+void assign( char* const dst, long& dst_ind, const char* const src )
 {
-    if ( lhs_ind < 0 || rhs_ind < 0 )
+    dst_ind = std::strlen( src );
+
+    std::memcpy( dst, src, dst_ind );
+}
+
+int compare( const char* const lhs, const long lhs_ind, const char* const rhs, const long rhs_ind )
+{
+    if ( lhs_ind < 0 )
     {
-        return false;
+        return -1;
     }
 
-    return std::memcmp( lhs, rhs, std::min( lhs_ind, rhs_ind ) ) == 0;
+    if ( rhs_ind < 0 )
+    {
+        return +1;
+    }
+
+    return std::memcmp( lhs, rhs, std::min( lhs_ind, rhs_ind ) );
 }
 
 std::string str( const char* const val, const long ind )

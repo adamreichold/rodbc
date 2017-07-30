@@ -31,8 +31,9 @@ namespace detail
 
 void assign( char* const dst, long& dst_ind, const char* const src, const long src_ind );
 void assign( char* const dst, long& dst_ind, const std::string& src );
+void assign( char* const dst, long& dst_ind, const char* const src );
 
-bool compare( const char* const lhs, const long lhs_ind, const char* const rhs, const long rhs_ind );
+int compare( const char* const lhs, const long lhs_ind, const char* const rhs, const long rhs_ind );
 
 std::string str( const char* const val, const long ind );
 const char* c_str( char* const val, const long ind );
@@ -67,14 +68,21 @@ public:
     String( const String& );
     String& operator= ( const String& );
 
-    String( const std::string& );
+    explicit String( const std::string& );
     String& operator= ( const std::string& );
+
+    explicit String( const char* const );
+    String& operator= ( const char* const );
 
     bool isNull() const;
 
 public:
     bool operator== ( const String& );
     bool operator!= ( const String& );
+    bool operator< ( const String& );
+    bool operator<= ( const String& );
+    bool operator> ( const String& );
+    bool operator>= ( const String& );
 
 public:
     std::string str() const;
@@ -158,6 +166,21 @@ template< std::size_t Size >
 inline String< Size >& String< Size >::operator= ( const std::string& str )
 {
     detail::assign( val_, ind_, str );
+
+    return *this;
+}
+
+template< std::size_t Size >
+inline String< Size >::String( const char* const str )
+{
+    detail::assign( val_, ind_, str );
+}
+
+template< std::size_t Size >
+inline String< Size >& String< Size >::operator= ( const char* const str )
+{
+    detail::assign( val_, ind_, str );
+
     return *this;
 }
 
@@ -170,13 +193,37 @@ inline bool String< Size >::isNull() const
 template< std::size_t Size >
 bool String< Size >::operator== ( const String& that )
 {
-    return detail::compare( val_, ind_, that.val_, that.ind_ );
+    return detail::compare( val_, ind_, that.val_, that.ind_ ) == 0;
 }
 
 template< std::size_t Size >
 bool String< Size >::operator!= ( const String& that )
 {
     return !( *this == that );
+}
+
+template< std::size_t Size >
+bool String< Size >::operator< ( const String& that )
+{
+    return detail::compare( val_, ind_, that.val_, that.ind_ ) < 0;
+}
+
+template< std::size_t Size >
+bool String< Size >::operator<= ( const String& that )
+{
+    return detail::compare( val_, ind_, that.val_, that.ind_ ) <= 0;
+}
+
+template< std::size_t Size >
+bool String< Size >::operator> ( const String& that )
+{
+    return that < *this;
+}
+
+template< std::size_t Size >
+bool String< Size >::operator>= ( const String& that )
+{
+    return that <= *this;
 }
 
 template< std::size_t Size >
