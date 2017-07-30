@@ -10,31 +10,15 @@ endif()
 
 project( rodbc CXX )
 
-add_library( rodbc SHARED src/types.cpp src/connection.cpp src/statement.cpp )
-include_directories( include )
-
-set_target_properties(
-    rodbc PROPERTIES
-    VERSION 0.1
-    SOVERSION 0
-)
-
-target_link_libraries( rodbc odbc )
-
 find_package( Boost 1.60 COMPONENTS thread REQUIRED )
-include_directories( ${Boost_INCLUDE_DIR} )
-target_link_libraries( rodbc ${Boost_LIBRARIES} )
+include_directories( include ${Boost_INCLUDE_DIR} )
 
-install(
-    TARGETS rodbc
-    LIBRARY DESTINATION lib
-)
+add_library( rodbc SHARED src/types.cpp src/connection.cpp src/statement.cpp )
+set_target_properties( rodbc PROPERTIES VERSION 0.1 SOVERSION 0 )
+target_link_libraries( rodbc odbc ${Boost_LIBRARIES} )
 
-install(
-    DIRECTORY ${CMAKE_SOURCE_DIR}/include/
-    DESTINATION include/rodbc
-    FILES_MATCHING PATTERN *.hpp|*.ipp
-)
+install( TARGETS rodbc LIBRARY DESTINATION lib )
+install( DIRECTORY ${CMAKE_SOURCE_DIR}/include DESTINATION include/rodbc FILES_MATCHING PATTERN *.hpp|*.ipp )
 
 set( CPACK_PACKAGE_VERSION 0.1 )
 set( CPACK_RPM_PACKAGE_LICENSE LGPLv3+ )
