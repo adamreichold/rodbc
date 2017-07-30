@@ -22,12 +22,52 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "statement.hpp"
 
+#include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/std_tuple.hpp>
 
 #include <cassert>
 
 namespace rodbc
 {
+namespace detail
+{
+struct ParamBinder
+{
+    Statement* const stmt;
+
+    template< typename Param >
+    void operator() ( const Param& param ) const
+    {
+        stmt->bindParam( param );
+    }
+};
+
+template< typename Params >
+inline void bindParams( Statement& stmt, const Params& params )
+{
+    stmt.rebindParams();
+    boost::fusion::for_each( params, detail::ParamBinder{ &stmt } );
+}
+
+struct ColBinder
+{
+    Statement* const stmt;
+
+    template< typename Col >
+    void operator() ( Col& col ) const
+    {
+        stmt->bindCol( col );
+    }
+};
+
+template< typename Cols >
+inline void bindCols( Statement& stmt, Cols& cols )
+{
+    stmt.rebindCols();
+    boost::fusion::for_each( cols, detail::ColBinder{ &stmt } );
+}
+
+}
 
 template< typename Params, typename Cols >
 class TypedStatement
@@ -97,8 +137,8 @@ template< typename Params, typename Cols >
 inline TypedStatement< Params, Cols >::TypedStatement( Connection& conn, const char* const stmt )
 : stmt_{ conn, stmt }
 {
-    stmt_.bindParams( params_ );
-    stmt_.bindCols( cols_ );
+    detail::bindParams( stmt_, params_ );
+    detail::bindCols( stmt_, cols_ );
 }
 
 template< typename Params, typename Cols >
@@ -155,6 +195,8 @@ inline void TypedStatement< std::vector< Params >, std::tuple<> >::bindParams()
     }
 
     stmt_.bindParamArray( params_ );
+    detail::bindParams( stmt_, params_.front() );
+
     binding_ = binding;
 }
 
@@ -162,7 +204,7 @@ template< typename Params, typename Cols >
 inline TypedStatement< Params, std::vector< Cols > >::TypedStatement( Connection& conn, const char* const stmt, std::size_t fetchSize )
 : stmt_{ conn, stmt }
 {
-    stmt_.bindParams( params_ );
+    detail::bindParams( stmt_, params_ );
 
     cols_.reserve( fetchSize );
     cols_.resize( cols_.capacity() );
@@ -203,6 +245,8 @@ inline void TypedStatement< Params, std::vector< Cols > >::bindCols()
     }
 
     stmt_.bindColArray( cols_, rowsFetched_ );
+    detail::bindCols( stmt_, cols_.front() );
+
     binding_ = binding;
 }
 

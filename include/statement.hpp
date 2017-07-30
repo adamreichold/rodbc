@@ -22,7 +22,6 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "types.hpp"
 
-#include <boost/fusion/include/for_each.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <vector>
@@ -72,6 +71,9 @@ public:
     template< std::size_t Size >
     Statement& bindParam( const String< Size >& param );
 
+    template< typename Params >
+    void bindParamArray( const std::vector< Params >& params );
+
     Statement& rebindParams();
 
 public:
@@ -111,6 +113,9 @@ public:
     template< std::size_t Size >
     Statement& bindCol( Nullable< String< Size > >& col );
 
+    template< typename Cols >
+    void bindColArray( std::vector< Cols >& cols, long& rowsFetched );
+
     Statement& rebindCols();
 
 public:
@@ -147,17 +152,8 @@ public:
     template< std::size_t Size >
     Statement& bindParam( String< Size >&& ) = delete;
 
-public:
     template< typename Params >
-    void bindParams( const Params& params );
-    template< typename Cols >
-    void bindCols( Cols& cols );
-
-public:
-    template< typename Params >
-    void bindParamArray( const std::vector< Params >& params );
-    template< typename Cols >
-    void bindColArray( std::vector< Cols >& cols, long& rowsFetched );
+    void bindParamArray( std::vector< Params >&& params ) = delete;
 
 public:
     void exec();
@@ -195,59 +191,16 @@ inline Statement& Statement::bindCol( String< Size >& col )
     return doBindStringCol( col.val_, Size, &col.ind_ );
 }
 
-namespace detail
-{
-
-struct ParamBinder
-{
-    Statement* const stmt;
-
-    template< typename Param >
-    void operator() ( const Param& param ) const
-    {
-        stmt->bindParam( param );
-    }
-};
-
-struct ColBinder
-{
-    Statement* const stmt;
-
-    template< typename Col >
-    void operator() ( Col& col ) const
-    {
-        stmt->bindCol( col );
-    }
-};
-
-}
-
-template< typename Params >
-inline void Statement::bindParams( const Params& params )
-{
-    rebindParams();
-    boost::fusion::for_each( params, detail::ParamBinder{ this } );
-}
-
-template< typename Cols >
-inline void Statement::bindCols( Cols& cols )
-{
-    rebindCols();
-    boost::fusion::for_each( cols, detail::ColBinder{ this } );
-}
-
 template< typename Params >
 inline void Statement::bindParamArray( const std::vector< Params >& params )
 {
     doBindParamArray( sizeof( Params ), params.size() );
-    bindParams( params.front() );
 }
 
 template< typename Cols >
 inline void Statement::bindColArray( std::vector< Cols >& cols , long& rowsFetched )
 {
     doBindColArray( sizeof( Cols ), cols.size(), &rowsFetched );
-    bindCols( cols.front() );
 }
 
 }
