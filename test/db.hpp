@@ -90,7 +90,7 @@ struct Database : private rodbc::Database< Statements >
         float& a;
         const std::vector< Bar >& bar;
 
-        SelectBarByA( Database& database, const std::size_t batchSize );
+        SelectBarByA( Database& database );
 
         void exec();
         bool fetch();

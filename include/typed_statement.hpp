@@ -22,83 +22,48 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "statement.hpp"
 
-#include <boost/fusion/include/define_struct.hpp>
+#include <boost/fusion/include/std_tuple.hpp>
 
 #include <cassert>
 
-BOOST_FUSION_DEFINE_STRUCT( ( rodbc ), None, /**/ );
-
 namespace rodbc
 {
-namespace detail
-{
-
-template< typename Type >
-struct IsNone : public std::is_same< Type, None > {};
-template< typename Type >
-using EnableIfNone = typename std::enable_if< IsNone< Type >::value >::type;
-template< typename Type >
-using EnableIfNotNone = typename std::enable_if< !IsNone< Type >::value >::type;
-
-}
 
 template< typename Params, typename Cols >
 class TypedStatement
 {
 public:
-    template< typename DefParams = Params, typename DefCols = Cols >
-    TypedStatement(
-        Connection& conn,
-        const char* const stmt,
-        const Params& params,
-        Cols& cols,
-        detail::EnableIfNotNone< DefParams >* = nullptr,
-        detail::EnableIfNotNone< DefCols >* = nullptr
-    );
+    TypedStatement( Connection& conn, const char* const stmt );
 
-    template< typename DefParams = Params >
-    TypedStatement(
-        Connection& conn,
-        const char* const stmt,
-        Cols& cols,
-        detail::EnableIfNone< DefParams >* = nullptr
-    );
-
-    template< typename DefCols = Cols >
-    TypedStatement(
-        Connection& conn,
-        const char* const stmt,
-        const Params& params,
-        detail::EnableIfNone< DefCols >* = nullptr
-    );
+    Params& params();
+    const Cols& cols() const;
 
 public:
     void exec();
-
-    template< typename DefCols = Cols >
-    bool fetch( detail::EnableIfNotNone< DefCols >* = nullptr );
+    bool fetch();
 
 private:
     Statement stmt_;
+    Params params_;
+    Cols cols_;
 };
 
 template< typename Params >
-class TypedStatement< std::vector< Params >, None >
+class TypedStatement< std::vector< Params >, std::tuple<> >
 {
 public:
-    TypedStatement(
-        Connection& conn,
-        const char* const stmt,
-        const std::vector< Params >& params
-    );
+    TypedStatement( Connection& conn, const char* const stmt );
+
+    std::vector< Params >& params();
 
 public:
     void exec();
 
 private:
     Statement stmt_;
-    const std::vector< Params >& params_;
-    std::pair< const Params*, std::size_t > binding_{ nullptr, 0 };
+
+    std::vector< Params > params_;
+    std::pair< Params*, std::size_t > binding_{ nullptr, 0 };
 
     void bindParams();
 };
@@ -107,22 +72,10 @@ template< typename Params, typename Cols >
 class TypedStatement< Params, std::vector< Cols > >
 {
 public:
-    template< typename DefParams = Params >
-    TypedStatement(
-        Connection& conn,
-        const char* const stmt,
-        const Params& params,
-        std::vector< Cols >& rows,
-        detail::EnableIfNotNone< DefParams >* = nullptr
-    );
+    TypedStatement( Connection& conn, const char* const stmt, const std::size_t fetchSize );
 
-    template< typename DefParams = Params >
-    TypedStatement(
-        Connection& conn,
-        const char* const stmt,
-        std::vector< Cols >& rows,
-        detail::EnableIfNone< DefParams >* = nullptr
-    );
+    Params& params();
+    const std::vector< Cols >& cols() const;
 
 public:
     void exec();
@@ -130,53 +83,34 @@ public:
 
 private:
     Statement stmt_;
-    std::vector< Cols >& rows_;
+    Params params_;
+
+    std::vector< Cols > cols_;
     std::pair< Cols*, std::size_t > binding_{ nullptr, 0 };
+
     long rowsFetched_;
 
     void bindCols();
 };
 
 template< typename Params, typename Cols >
-template< typename DefParams, typename DefCols >
-inline TypedStatement< Params, Cols >::TypedStatement(
-    Connection& conn,
-    const char* const stmt,
-    const Params& params,
-    Cols& cols,
-    detail::EnableIfNotNone< DefParams >*,
-    detail::EnableIfNotNone< DefCols >*
-)
+inline TypedStatement< Params, Cols >::TypedStatement( Connection& conn, const char* const stmt )
 : stmt_{ conn, stmt }
 {
-    stmt_.bindParams( params );
-    stmt_.bindCols( cols );
+    stmt_.bindParams( params_ );
+    stmt_.bindCols( cols_ );
 }
 
 template< typename Params, typename Cols >
-template< typename DefParams >
-inline TypedStatement< Params, Cols >::TypedStatement(
-    Connection& conn,
-    const char* const stmt,
-    Cols& cols,
-    detail::EnableIfNone< DefParams >*
-)
-: stmt_{ conn, stmt }
+inline Params& TypedStatement< Params, Cols >::params()
 {
-    stmt_.bindCols( cols );
+    return params_;
 }
 
 template< typename Params, typename Cols >
-template< typename DefCols >
-inline TypedStatement< Params, Cols >::TypedStatement(
-    Connection& conn,
-    const char* const stmt,
-    const Params& params,
-    detail::EnableIfNone< DefCols >*
-)
-: stmt_{ conn, stmt }
+inline const Cols& TypedStatement< Params, Cols >::cols() const
 {
-    stmt_.bindParams( params );
+    return cols_;
 }
 
 template< typename Params, typename Cols >
@@ -186,35 +120,35 @@ inline void TypedStatement< Params, Cols >::exec()
 }
 
 template< typename Params, typename Cols >
-template< typename DefCols >
-inline bool TypedStatement< Params, Cols >::fetch( detail::EnableIfNotNone< DefCols >* )
+inline bool TypedStatement< Params, Cols >::fetch()
 {
     return stmt_.fetch();
 }
 
 template< typename Params >
-inline TypedStatement< std::vector< Params >, None >::TypedStatement(
-    Connection& conn,
-    const char* const stmt,
-    const std::vector< Params >& params
-)
+inline TypedStatement< std::vector< Params >, std::tuple<> >::TypedStatement( Connection& conn, const char* const stmt )
 : stmt_{ conn, stmt }
-, params_( params )
 {
 }
 
+template<typename Params>
+inline std::vector< Params >& TypedStatement< std::vector< Params >, std::tuple<> >::params()
+{
+    return params_;
+}
+
 template< typename Params >
-inline void TypedStatement< std::vector< Params >, None >::exec()
+inline void TypedStatement< std::vector< Params >, std::tuple<> >::exec()
 {
     bindParams();
+
     stmt_.exec();
 }
 
 template< typename Params >
-inline void TypedStatement< std::vector< Params >, None >::bindParams()
+inline void TypedStatement< std::vector< Params >, std::tuple<> >::bindParams()
 {
     const auto binding = std::make_pair( params_.data(), params_.size() );
-
     if ( binding_ == binding )
     {
         return;
@@ -225,53 +159,36 @@ inline void TypedStatement< std::vector< Params >, None >::bindParams()
 }
 
 template< typename Params, typename Cols >
-template< typename DefParams >
-inline TypedStatement< Params, std::vector< Cols > >::TypedStatement(
-    Connection& conn,
-    const char* const stmt,
-    const Params& params,
-    std::vector< Cols >& rows,
-    detail::EnableIfNotNone< DefParams >*
-)
+inline TypedStatement< Params, std::vector< Cols > >::TypedStatement( Connection& conn, const char* const stmt, std::size_t fetchSize )
 : stmt_{ conn, stmt }
-, rows_( rows )
 {
-    stmt_.bindParams( params );
-}
+    stmt_.bindParams( params_ );
 
-template< typename Params, typename Cols >
-template< typename DefParams >
-inline TypedStatement< Params, std::vector< Cols > >::TypedStatement(
-    Connection& conn,
-    const char* const stmt,
-    std::vector< Cols >& rows,
-    detail::EnableIfNone< DefParams >*
-)
-: stmt_{ conn, stmt }
-, rows_{ rows }
-{
+    cols_.reserve( fetchSize );
+    cols_.resize( cols_.capacity() );
 }
 
 template< typename Params, typename Cols >
 inline void TypedStatement< Params, std::vector< Cols > >::exec()
 {
-    assert( rows_.size() == rows_.capacity() && "Row set size and capactiy must be equals before statement execution." );
+    assert( cols_.size() == cols_.capacity() && "Row set size and capacity must be equals before statement execution." );
 
     bindCols();
+
     stmt_.exec();
 }
 
 template< typename Params, typename Cols >
 inline bool TypedStatement< Params, std::vector< Cols > >::fetch()
 {
-    if ( rows_.size() != rows_.capacity() || !stmt_.fetch() )
+    if ( cols_.size() != cols_.capacity() || !stmt_.fetch() )
     {
-        rows_.resize( rows_.capacity() );
+        cols_.resize( cols_.capacity() );
 
         return false;
     }
 
-    rows_.resize( rowsFetched_ );
+    cols_.resize( rowsFetched_ );
 
     return rowsFetched_ != 0;
 }
@@ -279,15 +196,26 @@ inline bool TypedStatement< Params, std::vector< Cols > >::fetch()
 template< typename Params, typename Cols >
 inline void TypedStatement< Params, std::vector< Cols > >::bindCols()
 {
-    const auto binding = std::make_pair( rows_.data(), rows_.size() );
-
+    const auto binding = std::make_pair( cols_.data(), cols_.size() );
     if ( binding_ == binding )
     {
         return;
     }
 
-    stmt_.bindColArray( rows_, rowsFetched_ );
+    stmt_.bindColArray( cols_, rowsFetched_ );
     binding_ = binding;
+}
+
+template< typename Params, typename Cols >
+inline Params& TypedStatement< Params, std::vector< Cols > >::params()
+{
+    return params_;
+}
+
+template< typename Params, typename Cols >
+const std::vector< Cols >& TypedStatement< Params, std::vector< Cols > >::cols() const
+{
+    return cols_;
 }
 
 }

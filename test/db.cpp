@@ -25,8 +25,6 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "util.hpp"
 
-#include <boost/fusion/include/std_tuple.hpp>
-
 namespace
 {
 
@@ -46,24 +44,20 @@ namespace foobar
 
 struct Statements
 {
-    Foo foo;
-    std::vector< Bar > bar;
-    std::tuple< float > a;
-
     CreateTables tables;
 
-    rodbc::TypedStatement< Foo, rodbc::None > insertFoo;
-    rodbc::TypedStatement< rodbc::None, Foo > selectAllFoo;
+    rodbc::TypedStatement< Foo, std::tuple<> > insertFoo;
+    rodbc::TypedStatement< std::tuple<>, Foo > selectAllFoo;
 
-    rodbc::TypedStatement< std::vector< Bar >, rodbc::None > insertBar;
-    rodbc::TypedStatement< decltype ( a ), std::vector< Bar > > selectBarByA;
+    rodbc::TypedStatement< std::vector< Bar >, std::tuple<> > insertBar;
+    rodbc::TypedStatement< std::tuple< float >, std::vector< Bar > > selectBarByA;
 
     Statements( rodbc::Connection& conn )
     : tables{ conn }
-    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);", foo }
-    , selectAllFoo{ conn, "SELECT x, y, z FROM foo;", foo }
-    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);", bar }
-    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?;", a, bar }
+    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
+    , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
+    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
+    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?;", 128 }
     {
     }
 };
@@ -85,7 +79,7 @@ void Database::Transaction::commit()
 
 Database::InsertFoo::InsertFoo( Database& database )
 : BoundStatement{ database }
-, foo{ stmts_.foo }
+, foo{ stmts_.insertFoo.params() }
 {
 }
 
@@ -96,7 +90,7 @@ void Database::InsertFoo::exec()
 
 Database::SelectAllFoo::SelectAllFoo( Database& database )
 : BoundStatement{ database }
-, foo{ stmts_.foo }
+, foo{ stmts_.selectAllFoo.cols() }
 {
 }
 
@@ -112,7 +106,7 @@ bool Database::SelectAllFoo::fetch()
 
 Database::InsertBar::InsertBar( Database& database )
 : BoundStatement{ database }
-, bar{ stmts_.bar }
+, bar{ stmts_.insertBar.params() }
 {
 }
 
@@ -121,12 +115,11 @@ void Database::InsertBar::exec()
     doExec( stmts_.insertBar );
 }
 
-Database::SelectBarByA::SelectBarByA( Database& database, const std::size_t batchSize )
+Database::SelectBarByA::SelectBarByA( Database& database )
 : BoundStatement{ database }
-, a{ std::get< 0 >( stmts_.a ) }
-, bar{ stmts_.bar }
+, a{ std::get< 0 >( stmts_.selectBarByA.params() ) }
+, bar{ stmts_.selectBarByA.cols() }
 {
-    resizeRowSet( stmts_.bar, batchSize );
 }
 
 void Database::SelectBarByA::exec()
@@ -150,29 +143,25 @@ Database::~Database() = default;
 
 struct Statements
 {
-    std::tuple< int, int, int > foo;
-    std::vector< std::tuple< float, float, float > > bar;
-    std::tuple< float > a;
-
     CreateTables tables;
 
-    rodbc::TypedStatement< decltype ( foo ), rodbc::None > insertFoo;
-    rodbc::TypedStatement< rodbc::None, decltype ( foo ) > selectAllFoo;
+    rodbc::TypedStatement< std::tuple< int, int, int >, std::tuple<> > insertFoo;
+    rodbc::TypedStatement< std::tuple<>, std::tuple< int, int, int > > selectAllFoo;
 
-    rodbc::TypedStatement< decltype ( bar ), rodbc::None > insertBar;
-    rodbc::TypedStatement< decltype ( a ), decltype ( bar ) > selectBarByA;
+    rodbc::TypedStatement< std::vector< std::tuple< float, float, float > >, std::tuple<> > insertBar;
+    rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
     Statements( rodbc::Connection& conn )
     : tables{ conn }
-    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);", foo }
-    , selectAllFoo{ conn, "SELECT x, y, z FROM foo;", foo }
-    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);", bar }
-    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?;", a, bar }
+    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
+    , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
+    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
+    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?;", 128 }
     {
     }
 };
 
-struct DatabaseImpl::TransactionImpl : Transaction, private BoundTransaction
+struct DatabaseImpl::TransactionImpl final : Transaction, private BoundTransaction
 {
     TransactionImpl( DatabaseImpl& database )
     : BoundTransaction{ database }
@@ -202,7 +191,7 @@ void DatabaseImpl::insertFoo( const Foo& foo )
     withStatements( [&]( Statements& stmts )
     {
         auto& stmt = stmts.insertFoo;
-        auto& params = stmts.foo;
+        auto& params = stmt.params();
 
         std::get< 0 >( params ) = foo.x;
         std::get< 1 >( params ) = foo.y;
@@ -219,7 +208,7 @@ std::vector< Foo > DatabaseImpl::selectAllFoo()
     withStatements( [&]( Statements& stmts )
     {
         auto& stmt = stmts.selectAllFoo;
-        const auto& row = stmts.foo;
+        const auto& cols = stmt.cols();
 
         stmt.exec();
 
@@ -228,9 +217,9 @@ std::vector< Foo > DatabaseImpl::selectAllFoo()
             foos.emplace_back();
             auto& foo = foos.back();
 
-            foo.x = std::get< 0 >( row );
-            foo.y = std::get< 1 >( row );
-            foo.z = std::get< 2 >( row );
+            foo.x = std::get< 0 >( cols );
+            foo.y = std::get< 1 >( cols );
+            foo.z = std::get< 2 >( cols );
         }
     } );
 
@@ -242,7 +231,7 @@ void DatabaseImpl::insertBar( const std::vector< Bar >& bars )
     withStatements( [&]( Statements& stmts )
     {
         auto& stmt = stmts.insertBar;
-        auto& params = stmts.bar;
+        auto& params = stmt.params();
 
         params.clear();
         params.reserve( bars.size() );
@@ -268,12 +257,10 @@ std::vector< Bar > DatabaseImpl::selectBarByA( const float a )
     withStatements( [&]( Statements& stmts )
     {
         auto& stmt = stmts.selectBarByA;
-        auto& param = std::get< 0 >( stmts.a );
-        const auto& rows = stmts.bar;
+        auto& param = std::get< 0 >( stmt.params() );
+        const auto& rows = stmt.cols();
 
         param = a;
-
-        resizeRowSet( stmts.bar, 128 );
 
         stmt.exec();
 

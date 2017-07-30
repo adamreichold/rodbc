@@ -91,16 +91,17 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
     }
 
     {
-        foobar::Database::SelectBarByA stmt{ db, 128 };
+        foobar::Database::SelectBarByA stmt{ db };
 
-        stmt.a = 512.0f;
+        stmt.a = 576.0f;
 
         stmt.exec();
 
-        for ( int i = 0; i < 4; ++i )
+        std::size_t remaining = 576;
+
+        while ( stmt.fetch() )
         {
-            BOOST_CHECK( stmt.fetch() );
-            BOOST_CHECK( stmt.bar.size() == 128 );
+            remaining -= stmt.bar.size();
 
             for ( const auto& bar : stmt.bar )
             {
@@ -111,7 +112,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
             }
         }
 
-        BOOST_CHECK( !stmt.fetch() );
+        BOOST_CHECK_EQUAL( 0, remaining );
     }
 }
 
