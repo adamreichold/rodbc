@@ -21,9 +21,27 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 namespace rodbc
 {
+
+enum class DBMS
+{
+    Other,
+    SQLite,
+    PostgreSQL,
+    MySQL
+};
+
+enum class IsolationLevel
+{
+    Other,
+    ReadUncommitted,
+    ReadCommitted,
+    RepeatableRead,
+    Serializable
+};
 
 class Connection : private boost::noncopyable
 {
@@ -31,11 +49,18 @@ public:
     Connection( const char* const connStr );
     ~Connection();
 
+    DBMS dbms() const;
+
+    IsolationLevel isolationLevel() const;
+    void setIsolationLevel( const IsolationLevel isolationLevel );
+
     bool isDead() const;
 
 private:
     void* env_;
     void* dbc_;
+
+    mutable boost::optional< DBMS > dbms_;
 
     friend class Transaction;
     friend class Statement;

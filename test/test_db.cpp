@@ -32,7 +32,7 @@ BOOST_FIXTURE_TEST_SUITE( foobarDb, FoobarFixture )
 BOOST_AUTO_TEST_CASE( canCreateTables )
 {
     foobar::Database::Transaction trans{ db };
-    trans.commit();
+    BOOST_CHECK_NO_THROW( trans.commit() );
 }
 
 BOOST_AUTO_TEST_CASE( canInsertAndSelectFoos )
@@ -48,14 +48,14 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectFoos )
             stmt.foo.y = i * i;
             stmt.foo.z = i * i * i;
 
-            stmt.exec();
+            BOOST_CHECK_NO_THROW( stmt.exec() );
         }
     }
 
     {
         foobar::Database::SelectAllFoo stmt{ db };
 
-        stmt.exec();
+        BOOST_CHECK_NO_THROW( stmt.exec() );
 
         for ( int i = 0; i < 256; ++i )
         {
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
             stmt.bar[ i ].c = 3.0f * i;
         }
 
-        stmt.exec();
+        BOOST_CHECK_NO_THROW( stmt.exec() );
     }
 
     {
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
 
         stmt.a = 576.0f;
 
-        stmt.exec();
+        BOOST_CHECK_NO_THROW( stmt.exec() );
 
         std::size_t remaining = 576;
 

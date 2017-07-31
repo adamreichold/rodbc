@@ -30,6 +30,22 @@ BOOST_AUTO_TEST_CASE( canConnect )
 {
 }
 
+BOOST_AUTO_TEST_CASE( canDetermineDBMS )
+{
+    BOOST_CHECK( conn.dbms() != rodbc::DBMS::Other );
+}
+
+BOOST_AUTO_TEST_CASE( canDetermineIsolationLevel )
+{
+    BOOST_CHECK( conn.isolationLevel() != rodbc::IsolationLevel::Other );
+}
+
+BOOST_AUTO_TEST_CASE( canChangeIsolationLevel )
+{
+    BOOST_CHECK_NO_THROW( conn.setIsolationLevel( rodbc::IsolationLevel::Serializable ) );
+    BOOST_CHECK( conn.isolationLevel() == rodbc::IsolationLevel::Serializable );
+}
+
 BOOST_AUTO_TEST_CASE( isNotDead )
 {
     BOOST_CHECK( !conn.isDead() );
@@ -43,7 +59,7 @@ BOOST_AUTO_TEST_CASE( canStartTransaction )
 BOOST_AUTO_TEST_CASE( canCommitTransaction )
 {
     rodbc::Transaction trans{ conn };
-    trans.commit();
+    BOOST_CHECK_NO_THROW( trans.commit() );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

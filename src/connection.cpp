@@ -25,6 +25,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <sql.h>
 #include <sqlext.h>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace rodbc
 {
 namespace
@@ -55,6 +57,86 @@ Connection::~Connection()
 {
     ::SQLFreeHandle( SQL_HANDLE_DBC, dbc_ );
     ::SQLFreeHandle( SQL_HANDLE_ENV, env_ );
+}
+
+DBMS Connection::dbms() const
+{
+    if ( dbms_ )
+    {
+        return *dbms_;
+    }
+
+    SQLSMALLINT nameLength;
+    check( ::SQLGetInfo( dbc_, SQL_DBMS_NAME, nullptr, 0, &nameLength ), SQL_HANDLE_DBC, dbc_ );
+
+    std::string name;
+    name.resize( nameLength + 1 );
+    check( ::SQLGetInfo( dbc_, SQL_DBMS_NAME, &name.front(), name.size(), nullptr ), SQL_HANDLE_DBC, dbc_ );
+
+    if ( boost::icontains( name, "SQLite" ) )
+    {
+        dbms_= DBMS::SQLite;
+    }
+    else if ( boost::icontains( name, "PostgreSQL" ) )
+    {
+        dbms_ = DBMS::PostgreSQL;
+    }
+    else if ( boost::icontains( name, "MySQL" ) )
+    {
+        dbms_ = DBMS::MySQL;
+    }
+    else
+    {
+        dbms_ = DBMS::Other;
+    }
+
+    return *dbms_;
+}
+
+IsolationLevel Connection::isolationLevel() const
+{
+    SQLUINTEGER txnIsolation;
+    check( ::SQLGetConnectAttr( dbc_, SQL_ATTR_TXN_ISOLATION, &txnIsolation, 0, nullptr ), SQL_HANDLE_DBC, dbc_ );
+
+    switch ( txnIsolation )
+    {
+    case SQL_TXN_READ_UNCOMMITTED:
+        return IsolationLevel::ReadUncommitted;
+    case SQL_TXN_READ_COMMITTED:
+        return IsolationLevel::ReadCommitted;
+    case SQL_TXN_REPEATABLE_READ:
+        return IsolationLevel::RepeatableRead;
+    case SQL_TXN_SERIALIZABLE:
+        return IsolationLevel::Serializable;
+    default:
+        return IsolationLevel::Other;
+    }
+}
+
+void Connection::setIsolationLevel(const IsolationLevel isolationLevel)
+{
+    SQLULEN txnIsolation;
+
+    switch( isolationLevel )
+    {
+    case IsolationLevel::Other:
+        check( ::SQLGetInfo( dbc_, SQL_DEFAULT_TXN_ISOLATION, &txnIsolation, 0, nullptr ), SQL_HANDLE_DBC, dbc_ );
+        break;
+    case IsolationLevel::ReadUncommitted:
+        txnIsolation = SQL_TXN_READ_UNCOMMITTED;
+        break;
+    case IsolationLevel::ReadCommitted:
+        txnIsolation = SQL_TXN_READ_COMMITTED;
+        break;
+    case IsolationLevel::RepeatableRead:
+        txnIsolation = SQL_TXN_REPEATABLE_READ;
+        break;
+    case IsolationLevel::Serializable:
+        txnIsolation = SQL_TXN_SERIALIZABLE;
+        break;
+    }
+
+    check( ::SQLSetConnectAttr( dbc_, SQL_TXN_ISOLATION, (SQLPOINTER) txnIsolation, 0 ), SQL_HANDLE_DBC, dbc_ );
 }
 
 bool Connection::isDead() const

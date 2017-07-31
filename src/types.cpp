@@ -97,18 +97,19 @@ Exception::Exception( const short type, void* const handle )
 : state_{ "00000" }
 , nativeError_{ 0 }
 {
-    short messageLength;
+    SQLSMALLINT messageLength;
 
     if ( SQL_SUCCEEDED( ::SQLGetDiagRec( type, handle, 1, (SQLCHAR*) state_, &nativeError_, nullptr, 0, &messageLength ) ) )
     {
         message_.resize( messageLength + 1 );
 
-        ::SQLGetDiagRec( type, handle, 1, nullptr, nullptr, (SQLCHAR*) &message_.front(), message_.size(), nullptr );
+        if ( SQL_SUCCEEDED( ::SQLGetDiagRec( type, handle, 1, nullptr, nullptr, (SQLCHAR*) &message_.front(), message_.size(), nullptr ) ) )
+        {
+            return;
+        }
     }
-    else
-    {
-        message_ = "ODBC diagnostic record could not be retrieved.";
-    }
+
+    message_ = "ODBC diagnostic record could not be retrieved.";
 }
 
 const char* Exception::state() const noexcept
