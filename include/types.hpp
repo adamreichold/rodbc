@@ -80,14 +80,6 @@ public:
     bool isNull() const;
 
 public:
-    bool operator== ( const String& );
-    bool operator!= ( const String& );
-    bool operator< ( const String& );
-    bool operator<= ( const String& );
-    bool operator> ( const String& );
-    bool operator>= ( const String& );
-
-public:
     std::string str() const;
     const char* c_str() const;
 
@@ -96,8 +88,21 @@ private:
     long ind_;
 
     friend class Statement;
+    template< std::size_t Size_ > friend bool operator== ( const String< Size_ >& lhs, const String< Size_ >& rhs );
+    template< std::size_t Size_ > friend bool operator!= ( const String< Size_ >& lhs, const String< Size_ >& rhs );
+    template< std::size_t Size_ > friend bool operator< ( const String< Size_ >& lhs, const String< Size_ >& rhs );
+    template< std::size_t Size_ > friend bool operator<= ( const String< Size_ >& lhs, const String< Size_ >& rhs );
+    template< std::size_t Size_ > friend bool operator> ( const String< Size_ >& lhs, const String< Size_ >& rhs );
+    template< std::size_t Size_ > friend bool operator>= ( const String< Size_ >& lhs, const String< Size_ >& rhs );
     template< class Key > friend struct std::hash;
 };
+
+template< std::size_t Size > bool operator== ( const String< Size >& lhs, const String< Size >& rhs );
+template< std::size_t Size > bool operator!= ( const String< Size >& lhs, const String< Size >& rhs );
+template< std::size_t Size > bool operator< ( const String< Size >& lhs, const String< Size >& rhs );
+template< std::size_t Size > bool operator<= ( const String< Size >& lhs, const String< Size >& rhs );
+template< std::size_t Size > bool operator> ( const String< Size >& lhs, const String< Size >& rhs );
+template< std::size_t Size > bool operator>= ( const String< Size >& lhs, const String< Size >& rhs );
 
 struct Timestamp
 {
@@ -138,8 +143,13 @@ private:
     long ind_;
 
     friend class Statement;
+    template< typename Type_ > friend bool operator== ( const Nullable< Type_ >& lhs, const Nullable< Type_ >& rhs );
+    template< typename Type_ > friend bool operator!= ( const Nullable< Type_ >& lhs, const Nullable< Type_ >& rhs );
     template< class Key > friend struct std::hash;
 };
+
+template< typename Type > bool operator== ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
+template< typename Type > bool operator!= ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
 
 template< std::size_t Size >
 inline String< Size >::String()
@@ -201,39 +211,39 @@ inline bool String< Size >::isNull() const
 }
 
 template< std::size_t Size >
-bool String< Size >::operator== ( const String& that )
+inline bool operator== ( const String< Size >& lhs, const String< Size >& rhs )
 {
-    return detail::compare( val_, ind_, that.val_, that.ind_ ) == 0;
+    return detail::compare( lhs.val_, lhs.ind_, rhs.val_, rhs.ind_ ) == 0;
 }
 
 template< std::size_t Size >
-bool String< Size >::operator!= ( const String& that )
+inline bool operator!= ( const String< Size >& lhs, const String< Size >& rhs )
 {
-    return !( *this == that );
+    return !( lhs == rhs );
 }
 
 template< std::size_t Size >
-bool String< Size >::operator< ( const String& that )
+inline bool operator< ( const String< Size >& lhs, const String< Size >& rhs )
 {
-    return detail::compare( val_, ind_, that.val_, that.ind_ ) < 0;
+    return detail::compare( lhs.val_, lhs.ind_, rhs.val_, rhs.ind_ ) < 0;
 }
 
 template< std::size_t Size >
-bool String< Size >::operator<= ( const String& that )
+inline bool operator<= ( const String< Size >& lhs, const String< Size >& rhs )
 {
-    return detail::compare( val_, ind_, that.val_, that.ind_ ) <= 0;
+    return detail::compare( lhs.val_, lhs.ind_, rhs.val_, rhs.ind_ ) <= 0;
 }
 
 template< std::size_t Size >
-bool String< Size >::operator> ( const String& that )
+inline bool operator> ( const String< Size >& lhs, const String< Size >& rhs )
 {
-    return that < *this;
+    return rhs < lhs;
 }
 
 template< std::size_t Size >
-bool String< Size >::operator>= ( const String& that )
+inline bool operator>= ( const String< Size >& lhs, const String< Size >& rhs )
 {
-    return that <= *this;
+    return rhs <= lhs;
 }
 
 template< std::size_t Size >
@@ -283,6 +293,23 @@ template< typename Type >
 inline const Type* Nullable< Type >::value() const
 {
     return ind_ < 0 ? nullptr : &val_;
+}
+
+template< typename Type >
+inline bool operator== ( const Nullable< Type >& lhs, const Nullable< Type >& rhs )
+{
+    if ( lhs.ind_ < 0 || rhs.ind_ < 0 )
+    {
+        return false;
+    }
+
+    return lhs.val_ == rhs.val_;
+}
+
+template< typename Type >
+inline bool operator!= ( const Nullable< Type >& lhs, const Nullable< Type >& rhs )
+{
+    return !( lhs == rhs );
 }
 
 }
