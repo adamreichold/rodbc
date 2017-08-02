@@ -42,13 +42,21 @@ inline void check( const SQLRETURN rc, const SQLSMALLINT type, const SQLHANDLE h
 
 }
 
-Connection::Connection( const char* const connStr )
+Environment::Environment()
 {
     check( ::SQLAllocHandle( SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env_ ), SQL_HANDLE_ENV, nullptr );
     check( ::SQLSetEnvAttr( env_, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0), SQL_HANDLE_ENV, env_ );
     check( ::SQLSetEnvAttr( env_, SQL_ATTR_CONNECTION_POOLING, (SQLPOINTER) SQL_CP_OFF, 0), SQL_HANDLE_ENV, env_ );
+}
 
-    check( ::SQLAllocHandle( SQL_HANDLE_DBC, env_, &dbc_ ), SQL_HANDLE_ENV, env_ );
+Environment::~Environment()
+{
+    ::SQLFreeHandle( SQL_HANDLE_ENV, env_ );
+}
+
+Connection::Connection( Environment& env, const char* const connStr )
+{
+    check( ::SQLAllocHandle( SQL_HANDLE_DBC, env.env_, &dbc_ ), SQL_HANDLE_ENV, env.env_ );
     check( ::SQLDriverConnect( dbc_, nullptr, (SQLCHAR*) connStr, SQL_NTS, nullptr, 0, 0, SQL_DRIVER_COMPLETE_REQUIRED ), SQL_HANDLE_DBC, dbc_ );
     check( ::SQLSetConnectAttr( dbc_, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_FALSE, 0 ), SQL_HANDLE_DBC, dbc_ );
 }
@@ -56,7 +64,6 @@ Connection::Connection( const char* const connStr )
 Connection::~Connection()
 {
     ::SQLFreeHandle( SQL_HANDLE_DBC, dbc_ );
-    ::SQLFreeHandle( SQL_HANDLE_ENV, env_ );
 }
 
 DBMS Connection::dbms() const

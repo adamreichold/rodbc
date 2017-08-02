@@ -74,7 +74,7 @@ inline void Database< Statements >::withStatements( Action action )
 
 template< typename Statements >
 inline Database< Statements >::Session::Session( const char* const connStr )
-: conn{ connStr }
+: conn{ env, connStr }
 , stmts{ conn }
 {
 }

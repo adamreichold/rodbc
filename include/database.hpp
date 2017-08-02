@@ -71,6 +71,7 @@ private:
     {
         Session( const char* const connStr );
 
+        Environment env;
         Connection conn;
         Statements stmts;
     };

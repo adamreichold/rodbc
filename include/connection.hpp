@@ -26,6 +26,18 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 namespace rodbc
 {
 
+class Environment
+{
+public:
+    Environment();
+    ~Environment();
+
+private:
+    void* env_;
+
+    friend class Connection;
+};
+
 enum class DBMS
 {
     Other,
@@ -46,7 +58,7 @@ enum class IsolationLevel
 class Connection : private boost::noncopyable
 {
 public:
-    Connection( const char* const connStr );
+    Connection( Environment& env, const char* const connStr );
     ~Connection();
 
     DBMS dbms() const;
@@ -57,7 +69,6 @@ public:
     bool isDead() const;
 
 private:
-    void* env_;
     void* dbc_;
 
     mutable boost::optional< DBMS > dbms_;

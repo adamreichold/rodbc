@@ -5,7 +5,8 @@
 
 struct Fixture
 {
-    rodbc::Connection conn{ RODBC_TEST_CONN_STR };
+    rodbc::Environment env;
+    rodbc::Connection conn{ env, RODBC_TEST_CONN_STR };
 };
 
 inline void createTable( rodbc::Connection& conn, const std::string& name, const std::string& definition )
