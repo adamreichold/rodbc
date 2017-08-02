@@ -24,7 +24,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <sqlext.h>
 
 #include <boost/format.hpp>
-#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/functional/hash.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/conversion.hpp>
 
 namespace rodbc
@@ -91,6 +92,11 @@ const char* c_str( char* const val, const long ind )
 
     val[ ind ] = '\0';
     return val;
+}
+
+std::size_t hash( const char* const val, const long ind )
+{
+    return ind < 0 ? 0 : boost::hash_range( val, val + ind );
 }
 
 }

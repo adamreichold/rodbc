@@ -21,6 +21,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <ctime>
+#include <functional>
 #include <stdexcept>
 #include <string>
 
@@ -37,6 +38,8 @@ int compare( const char* const lhs, const long lhs_ind, const char* const rhs, c
 
 std::string str( const char* const val, const long ind );
 const char* c_str( char* const val, const long ind );
+
+std::size_t hash( const char* const val, const long ind );
 
 }
 
@@ -93,6 +96,7 @@ private:
     long ind_;
 
     friend class Statement;
+    template< class Key > friend struct std::hash;
 };
 
 struct Timestamp
@@ -134,6 +138,7 @@ private:
     long ind_;
 
     friend class Statement;
+    template< class Key > friend struct std::hash;
 };
 
 template< std::size_t Size >
@@ -279,5 +284,34 @@ inline const Type* Nullable< Type >::value() const
 {
     return ind_ < 0 ? nullptr : &val_;
 }
+
+}
+
+namespace std
+{
+
+template< std::size_t Size >
+struct hash< rodbc::String< Size > >
+{
+    using argument_type = rodbc::String< Size >;
+    using result_type = std::size_t;
+
+    result_type operator() ( const argument_type& val ) const
+    {
+        return rodbc::detail::hash( val.val_, val.ind_ );
+    }
+};
+
+template< typename Type >
+struct hash< rodbc::Nullable< Type > >
+{
+    using argument_type = rodbc::Nullable< Type >;
+    using result_type = std::size_t;
+
+    result_type operator() ( const argument_type& val ) const
+    {
+        return val.ind_ < 0 ? 0 : std::hash< Type >{}( val.val_ );
+    }
+};
 
 }
