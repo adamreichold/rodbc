@@ -38,10 +38,12 @@ public:
     ~Statement();
 
 public:
+    Statement& bindParam( const std::int8_t& param );
     Statement& bindParam( const std::int16_t& param );
     Statement& bindParam( const std::int32_t& param );
     Statement& bindParam( const std::int64_t& param );
 
+    Statement& bindParam( const std::uint8_t& param );
     Statement& bindParam( const std::uint16_t& param );
     Statement& bindParam( const std::uint32_t& param );
     Statement& bindParam( const std::uint64_t& param );
@@ -53,10 +55,12 @@ public:
 
     Statement& bindParam( const Timestamp& param );
 
+    Statement& bindParam( const Nullable< std::int8_t >& param );
     Statement& bindParam( const Nullable< std::int16_t >& param );
     Statement& bindParam( const Nullable< std::int32_t >& param );
     Statement& bindParam( const Nullable< std::int64_t >& param );
 
+    Statement& bindParam( const Nullable< std::uint8_t >& param );
     Statement& bindParam( const Nullable< std::uint16_t >& param );
     Statement& bindParam( const Nullable< std::uint32_t >& param );
     Statement& bindParam( const Nullable< std::uint64_t >& param );
@@ -77,10 +81,12 @@ public:
     Statement& rebindParams();
 
 public:
+    Statement& bindCol( std::int8_t& col );
     Statement& bindCol( std::int16_t& col );
     Statement& bindCol( std::int32_t& col );
     Statement& bindCol( std::int64_t& col );
 
+    Statement& bindCol( std::uint8_t& col );
     Statement& bindCol( std::uint16_t& col );
     Statement& bindCol( std::uint32_t& col );
     Statement& bindCol( std::uint64_t& col );
@@ -95,10 +101,12 @@ public:
     template< std::size_t Size >
     Statement& bindCol( String< Size >& col );
 
+    Statement& bindCol( Nullable< std::int8_t >& col );
     Statement& bindCol( Nullable< std::int16_t >& col );
     Statement& bindCol( Nullable< std::int32_t >& col );
     Statement& bindCol( Nullable< std::int64_t >& col );
 
+    Statement& bindCol( Nullable< std::uint8_t >& col );
     Statement& bindCol( Nullable< std::uint16_t >& col );
     Statement& bindCol( Nullable< std::uint32_t >& col );
     Statement& bindCol( Nullable< std::uint64_t >& col );
@@ -119,10 +127,12 @@ public:
     Statement& rebindCols();
 
 public:
+    Statement& bindParam( std::int8_t&& ) = delete;
     Statement& bindParam( std::int16_t&& ) = delete;
     Statement& bindParam( std::int32_t&& ) = delete;
     Statement& bindParam( std::int64_t&& ) = delete;
 
+    Statement& bindParam( std::uint8_t&& ) = delete;
     Statement& bindParam( std::uint16_t&& ) = delete;
     Statement& bindParam( std::uint32_t&& ) = delete;
     Statement& bindParam( std::uint64_t&& ) = delete;

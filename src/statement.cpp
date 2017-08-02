@@ -52,10 +52,12 @@ struct OdbcTraits< type > \
     static_assert( sizeof ( type ) == sizeof ( OdbcType ), "Size of mapped type and ODBC typedef must match." ); \
 };
 
+DEF_ODBC_TRAITS( std::int8_t, SCHAR, SQL_C_STINYINT, SQL_TINYINT )
 DEF_ODBC_TRAITS( std::int16_t, SQLSMALLINT, SQL_C_SSHORT, SQL_SMALLINT )
 DEF_ODBC_TRAITS( std::int32_t, SQLINTEGER, SQL_C_SLONG, SQL_INTEGER )
 DEF_ODBC_TRAITS( std::int64_t, SQLBIGINT, SQL_C_SBIGINT, SQL_BIGINT )
 
+DEF_ODBC_TRAITS( std::uint8_t, UCHAR, SQL_C_UTINYINT, SQL_TINYINT )
 DEF_ODBC_TRAITS( std::uint16_t, SQLUSMALLINT, SQL_C_USHORT, SQL_SMALLINT )
 DEF_ODBC_TRAITS( std::uint32_t, SQLUINTEGER, SQL_C_ULONG, SQL_INTEGER )
 DEF_ODBC_TRAITS( std::uint64_t, SQLUBIGINT, SQL_C_UBIGINT, SQL_BIGINT )
@@ -93,10 +95,12 @@ Statement& Statement::bindParam( const Nullable< type >& param ) \
     return doBindParam( &param.val_, &param.ind_ ); \
 }
 
+DEF_BIND_PARAM( std::int8_t )
 DEF_BIND_PARAM( std::int16_t )
 DEF_BIND_PARAM( std::int32_t )
 DEF_BIND_PARAM( std::int64_t )
 
+DEF_BIND_PARAM( std::uint8_t )
 DEF_BIND_PARAM( std::uint16_t )
 DEF_BIND_PARAM( std::uint32_t )
 DEF_BIND_PARAM( std::uint64_t )
@@ -128,10 +132,12 @@ Statement& Statement::bindCol( Nullable< type >& col ) \
     return doBindCol( &col.val_, &col.ind_ ); \
 }
 
+DEF_BIND_COL( std::int8_t )
 DEF_BIND_COL( std::int16_t )
 DEF_BIND_COL( std::int32_t )
 DEF_BIND_COL( std::int64_t )
 
+DEF_BIND_COL( std::uint8_t )
 DEF_BIND_COL( std::uint16_t )
 DEF_BIND_COL( std::uint32_t )
 DEF_BIND_COL( std::uint64_t )
