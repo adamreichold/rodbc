@@ -25,8 +25,6 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/std_tuple.hpp>
 
-#include <cassert>
-
 namespace rodbc
 {
 namespace detail
@@ -207,13 +205,12 @@ inline TypedStatement< Params, std::vector< Cols > >::TypedStatement( Connection
     detail::bindParams( stmt_, params_ );
 
     cols_.reserve( fetchSize );
-    cols_.resize( cols_.capacity() );
 }
 
 template< typename Params, typename Cols >
 inline void TypedStatement< Params, std::vector< Cols > >::exec()
 {
-    assert( cols_.size() == cols_.capacity() && "Row set size and capacity must be equals before statement execution." );
+    cols_.resize( cols_.capacity() );
 
     bindCols();
 
@@ -225,8 +222,6 @@ inline bool TypedStatement< Params, std::vector< Cols > >::fetch()
 {
     if ( cols_.size() != cols_.capacity() || !stmt_.fetch() )
     {
-        cols_.resize( cols_.capacity() );
-
         return false;
     }
 
