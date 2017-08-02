@@ -78,6 +78,7 @@ public:
     String& operator= ( const char* const );
 
     bool isNull() const;
+    void clear();
 
 public:
     std::string str() const;
@@ -133,10 +134,13 @@ public:
     Nullable& operator= ( const Nullable& ) = default;
 
     bool isNull() const;
+    void clear();
 
 public:
     Type* value();
     const Type* value() const;
+
+    Type value( const Type& defVal ) const;
 
 private:
     Type val_;
@@ -208,6 +212,12 @@ template< std::size_t Size >
 inline bool String< Size >::isNull() const
 {
     return ind_ < 0;
+}
+
+template< std::size_t Size >
+void String< Size >::clear()
+{
+    ind_ = -1;
 }
 
 template< std::size_t Size >
@@ -284,6 +294,12 @@ inline bool Nullable< Type >::isNull() const
 }
 
 template< typename Type >
+void Nullable< Type >::clear()
+{
+    ind_ = -1;
+}
+
+template< typename Type >
 inline Type* Nullable< Type >::value()
 {
     return ind_ < 0 ? nullptr : &val_;
@@ -293,6 +309,12 @@ template< typename Type >
 inline const Type* Nullable< Type >::value() const
 {
     return ind_ < 0 ? nullptr : &val_;
+}
+
+template< typename Type >
+Type Nullable< Type >::value( const Type& defVal ) const
+{
+    return ind_ < 0 ? defVal : val_;
 }
 
 template< typename Type >
