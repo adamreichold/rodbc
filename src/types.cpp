@@ -24,6 +24,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <sqlext.h>
 
 #include <boost/format.hpp>
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <boost/date_time/posix_time/conversion.hpp>
 
 namespace rodbc
 {
@@ -140,17 +142,50 @@ const char* Exception::what() const noexcept
     return message_.c_str();
 }
 
-std::string Timestamp::str() const
+bool operator== ( const Timestamp& lhs, const Timestamp& rhs )
+{
+    return std::memcmp( &lhs, &rhs, sizeof ( Timestamp ) ) == 0;
+}
+
+Timestamp from_time_t( const std::time_t time )
+{
+    Timestamp ts;
+
+    const auto ptime = boost::posix_time::from_time_t( time );
+
+    const auto date = ptime.date();
+    ts.year = date.year();
+    ts.month = date.month();
+    ts.day = date.day();
+
+    const auto time_of_day = ptime.time_of_day();
+    ts.hour = time_of_day.hours();
+    ts.minute = time_of_day.minutes();
+    ts.second = time_of_day.seconds();
+    ts.fraction = time_of_day.fractional_seconds();
+
+    return ts;
+}
+
+std::time_t to_time_t( const Timestamp& ts )
+{
+    const boost::posix_time::ptime ptime{
+        { static_cast< unsigned short >( ts.year ), ts.month, ts.day },
+        { ts.hour, ts.minute, ts.second, ts.fraction }
+    };
+
+    return to_time_t( ptime );
+}
+
+std::string to_string( const Timestamp& ts )
 {
     static thread_local auto format = boost::format(
             "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ"
     );
 
     return boost::str(
-        format % year % month % day % hour % minute % second % fraction
+        format % ts.year % ts.month % ts.day % ts.hour % ts.minute % ts.second % ts.fraction
     );
 }
 
 }
-
-

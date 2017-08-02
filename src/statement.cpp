@@ -49,7 +49,7 @@ struct OdbcTraits< type > \
     static constexpr auto CType = cType; \
     static constexpr auto SqlType = sqlType; \
 \
-    static_assert( sizeof( type ) == sizeof( OdbcType ), "Size of mapped type and ODBC typedef must match." ); \
+    static_assert( sizeof ( type ) == sizeof ( OdbcType ), "Size of mapped type and ODBC typedef must match." ); \
 };
 
 DEF_ODBC_TRAITS( std::int16_t, SQLSMALLINT, SQL_C_SSHORT, SQL_SMALLINT )
@@ -165,12 +165,12 @@ bool Statement::fetch()
 
 Statement& Statement::doBindStringParam( const char* const data, const std::size_t length , const long* const indicator )
 {
-    return doBindParam( data, SQL_C_CHAR, SQL_VARCHAR, sizeof( char ), length, indicator );
+    return doBindParam( data, SQL_C_CHAR, SQL_VARCHAR, sizeof ( char ), length, indicator );
 }
 
 Statement& Statement::doBindStringCol( char* const data, const std::size_t length, long* const indicator )
 {
-    return doBindCol( data, SQL_C_CHAR, sizeof( char ) * length, indicator );
+    return doBindCol( data, SQL_C_CHAR, sizeof ( char ) * length, indicator );
 }
 
 void Statement::doBindParamArray( const std::size_t size, const std::size_t count )
@@ -191,7 +191,7 @@ Statement& Statement::doBindParam( const Param* const data, const long* const in
 {
     using ParamTraits = OdbcTraits< Param >;
 
-    return doBindParam( data, ParamTraits::CType, ParamTraits::SqlType, sizeof( Param ), 0, indicator );
+    return doBindParam( data, ParamTraits::CType, ParamTraits::SqlType, sizeof ( Param ), 0, indicator );
 }
 
 template< typename Col >
@@ -199,7 +199,7 @@ Statement& Statement::doBindCol( Col* const data, long* const indicator )
 {
     using ColTraits = OdbcTraits< Col >;
 
-    return doBindCol( data, ColTraits::CType, sizeof( Col ), indicator );
+    return doBindCol( data, ColTraits::CType, sizeof ( Col ), indicator );
 
 }
 

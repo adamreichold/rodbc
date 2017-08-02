@@ -143,7 +143,7 @@ bool Connection::isDead() const
 {
     SQLUINTEGER dead = SQL_CD_TRUE;
 
-    ::SQLGetConnectAttr( dbc_, SQL_ATTR_CONNECTION_DEAD, &dead, sizeof( dead ), nullptr );
+    ::SQLGetConnectAttr( dbc_, SQL_ATTR_CONNECTION_DEAD, &dead, sizeof ( dead ), nullptr );
 
     return dead != SQL_CD_FALSE;
 }

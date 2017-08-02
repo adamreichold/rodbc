@@ -20,7 +20,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include <cstring>
+#include <ctime>
 #include <stdexcept>
 #include <string>
 
@@ -104,9 +104,14 @@ struct Timestamp
    unsigned short minute;
    unsigned short second;
    unsigned fraction;
-
-   std::string str() const;
 };
+
+bool operator== ( const Timestamp& lhs, const Timestamp& rhs );
+bool operator!= ( const Timestamp& lhs, const Timestamp& rhs );
+
+Timestamp from_time_t( const std::time_t time );
+std::time_t to_time_t( const Timestamp& ts );
+std::string to_string( const Timestamp& ts );
 
 template< typename Type >
 class Nullable
@@ -236,6 +241,11 @@ template< std::size_t Size >
 inline const char* String< Size >::c_str() const
 {
     return detail::c_str( const_cast< char* >( val_ ), ind_ );
+}
+
+inline bool operator!= ( const Timestamp& lhs, const Timestamp& rhs )
+{
+    return !( lhs == rhs );
 }
 
 template< typename Type >

@@ -26,13 +26,19 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 BOOST_AUTO_TEST_SUITE( timestamp )
 
+constexpr auto epoch = rodbc::Timestamp{
+    1970, 1, 1, 0, 0, 0, 0
+};
+
+BOOST_AUTO_TEST_CASE( canConvertTheEpoch )
+{
+    BOOST_CHECK( epoch == rodbc::from_time_t( 0 ) );
+    BOOST_CHECK_EQUAL( 0, to_time_t( epoch ) );
+}
+
 BOOST_AUTO_TEST_CASE( canFormatTheEpoch )
 {
-    const auto epoch = rodbc::Timestamp{
-        1970, 1, 1, 0, 0, 0, 0
-    };
-
-    BOOST_CHECK_EQUAL( "1970-01-01T00:00:00.000Z", epoch.str() );
+    BOOST_CHECK_EQUAL( "1970-01-01T00:00:00.000Z", to_string( epoch ) );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
