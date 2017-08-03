@@ -74,10 +74,20 @@ inline void Database< Statements >::withStatements( Action action )
     closeDeadSession( [&]() { action( openSession().stmts ); } );
 }
 
+
 template< typename Statements >
-inline Database< Statements >::Session::Session( Environment& env, const char* const connStr )
-: conn{ env, connStr }
-, stmts{ conn }
+inline Connection Database< Statements >::makeConnection()
+{
+    boost::lock_guard< boost::mutex > lock{ mutex_ };
+
+    return { env_, connStr_ };
+}
+
+
+template< typename Statements >
+inline Database< Statements >::Session::Session( Connection&& conn )
+: conn{ std::move( conn ) }
+, stmts{ this->conn }
 {
 }
 
@@ -88,9 +98,7 @@ inline typename Database< Statements >::Session& Database< Statements >::openSes
 
     if ( !session )
     {
-        boost::lock_guard< boost::mutex > lock{ mutex_ };
-
-        session = new Session{ env_, connStr_ };
+        session = new Session{ makeConnection() };
         session_.reset( session );
     }
 

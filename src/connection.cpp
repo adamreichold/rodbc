@@ -126,6 +126,7 @@ DBMS Connection::dbms() const
 IsolationLevel Connection::isolationLevel() const
 {
     SQLUINTEGER txnIsolation;
+
     check( ::SQLGetConnectAttr( dbc_, SQL_ATTR_TXN_ISOLATION, &txnIsolation, 0, nullptr ), SQL_HANDLE_DBC, dbc_ );
 
     switch ( txnIsolation )
@@ -199,7 +200,7 @@ Transaction::Transaction( Transaction&& that )
     that.dbc_ = nullptr;
 }
 
-Transaction& Transaction::operator=( Transaction&& that )
+Transaction& Transaction::operator= ( Transaction&& that )
 {
     std::swap( dbc_, that.dbc_ );
 

@@ -73,9 +73,11 @@ private:
     Environment env_;
     const char* const connStr_;
 
+    Connection makeConnection();
+
     struct Session
     {
-        Session( Environment& env, const char* const connStr );
+        Session( Connection&& conn );
 
         Connection conn;
         Statements stmts;
