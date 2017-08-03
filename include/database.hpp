@@ -28,6 +28,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 namespace rodbc
 {
 
+/**
+ * @brief The Database class template
+ */
 template< typename Statements >
 class Database : private boost::noncopyable
 {

@@ -43,6 +43,9 @@ std::size_t hash( const char* const val, const long ind );
 
 }
 
+/**
+ * @brief The Exception class
+ */
 class Exception : public std::exception
 {
 public:
@@ -62,6 +65,9 @@ private:
     std::string message_;
 };
 
+/**
+ * @brief The String class template
+ */
 template< std::size_t Size >
 class String
 {
@@ -105,6 +111,9 @@ template< std::size_t Size > bool operator<= ( const String< Size >& lhs, const 
 template< std::size_t Size > bool operator> ( const String< Size >& lhs, const String< Size >& rhs );
 template< std::size_t Size > bool operator>= ( const String< Size >& lhs, const String< Size >& rhs );
 
+/**
+ * @brief The Timestamp struct
+ */
 struct Timestamp
 {
    short year;
@@ -123,6 +132,9 @@ Timestamp from_time_t( const std::time_t time );
 std::time_t to_time_t( const Timestamp& ts );
 std::string to_string( const Timestamp& ts );
 
+/**
+ * @brief The Nullable class template
+ */
 template< typename Type >
 class Nullable
 {

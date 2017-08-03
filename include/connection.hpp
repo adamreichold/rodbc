@@ -26,6 +26,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 namespace rodbc
 {
 
+/**
+ * @brief The Environment class
+ */
 class Environment
 {
 public:
@@ -55,6 +58,9 @@ enum class IsolationLevel
     Serializable
 };
 
+/**
+ * @brief The Connection class
+ */
 class Connection : private boost::noncopyable
 {
 public:
@@ -77,6 +83,9 @@ private:
     friend class Statement;
 };
 
+/**
+ * @brief The Transaction class
+ */
 class Transaction : private boost::noncopyable
 {
 public:

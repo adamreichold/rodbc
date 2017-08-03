@@ -29,6 +29,7 @@ namespace rodbc
 {
 namespace detail
 {
+
 struct ParamBinder
 {
     Statement* const stmt;
@@ -67,6 +68,9 @@ inline void bindCols( Statement& stmt, Cols& cols )
 
 }
 
+/**
+ * @brief The TypedStatement class template
+ */
 template< typename Params, typename Cols >
 class TypedStatement
 {

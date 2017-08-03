@@ -31,6 +31,9 @@ namespace rodbc
 
 class Connection;
 
+/**
+ * @brief The Statement class
+ */
 class Statement : private boost::noncopyable
 {
 public:

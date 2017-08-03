@@ -1,0 +1,10 @@
+PROJECT_NAME = "rodbc"
+PROJECT_BRIEF = "Reasonable ODBC wrapper for C++"
+
+INPUT = include
+STRIP_FROM_PATH = include
+HIDE_UNDOC_CLASSES = YES
+
+HTML_OUTPUT = doc
+GENERATE_TREEVIEW = YES
+GENERATE_LATEX = NO
