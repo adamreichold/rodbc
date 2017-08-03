@@ -22,6 +22,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "types.hpp"
 
+#include <boost/thread/lock_guard.hpp>
+
 namespace rodbc
 {
 
@@ -73,7 +75,7 @@ inline void Database< Statements >::withStatements( Action action )
 }
 
 template< typename Statements >
-inline Database< Statements >::Session::Session( const char* const connStr )
+inline Database< Statements >::Session::Session( Environment& env, const char* const connStr )
 : conn{ env, connStr }
 , stmts{ conn }
 {
@@ -86,8 +88,9 @@ inline typename Database< Statements >::Session& Database< Statements >::openSes
 
     if ( !session )
     {
-        session = new Session{ connStr_ };
+        boost::lock_guard< boost::mutex > lock{ mutex_ };
 
+        session = new Session{ env_, connStr_ };
         session_.reset( session );
     }
 

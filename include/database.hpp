@@ -23,6 +23,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include "connection.hpp"
 
 #include <boost/noncopyable.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/thread/tss.hpp>
 
 namespace rodbc
@@ -68,13 +69,14 @@ protected:
     void withStatements( Action action );
 
 private:
+    boost::mutex mutex_;
+    Environment env_;
     const char* const connStr_;
 
     struct Session
     {
-        Session( const char* const connStr );
+        Session( Environment& env, const char* const connStr );
 
-        Environment env;
         Connection conn;
         Statements stmts;
     };
