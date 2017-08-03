@@ -51,7 +51,12 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-    ::SQLFreeHandle( SQL_HANDLE_ENV, env_ );
+    if ( env_ )
+    {
+        ::SQLFreeHandle( SQL_HANDLE_ENV, env_ );
+
+        env_ = nullptr;
+    }
 }
 
 Connection::Connection( Environment& env, const char* const connStr )
@@ -63,7 +68,25 @@ Connection::Connection( Environment& env, const char* const connStr )
 
 Connection::~Connection()
 {
-    ::SQLFreeHandle( SQL_HANDLE_DBC, dbc_ );
+    if ( dbc_ )
+    {
+        ::SQLFreeHandle( SQL_HANDLE_DBC, dbc_ );
+
+        dbc_ = nullptr;
+    }
+}
+
+Connection::Connection( Connection&& that )
+{
+    dbc_ = that.dbc_;
+    that.dbc_ = nullptr;
+}
+
+Connection& Connection::operator= ( Connection&& that )
+{
+    std::swap( dbc_, that.dbc_ );
+
+    return* this;
 }
 
 DBMS Connection::dbms() const
@@ -164,7 +187,9 @@ Transaction::~Transaction()
 {
     if ( dbc_ )
     {
-        check( ::SQLEndTran( SQL_HANDLE_DBC, dbc_, SQL_ROLLBACK ), SQL_HANDLE_DBC, dbc_ );
+        ::SQLEndTran( SQL_HANDLE_DBC, dbc_, SQL_ROLLBACK );
+
+        dbc_ = nullptr;
     }
 }
 

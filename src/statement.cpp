@@ -81,7 +81,12 @@ Statement::Statement( Connection& conn, const char* const stmt )
 
 Statement::~Statement()
 {
-    ::SQLFreeHandle( SQL_HANDLE_STMT, stmt_ );
+    if ( stmt_ )
+    {
+        ::SQLFreeHandle( SQL_HANDLE_STMT, stmt_ );
+
+        stmt_ = nullptr;
+    }
 }
 
 #define DEF_BIND_PARAM( type ) \

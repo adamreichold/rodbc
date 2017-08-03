@@ -29,7 +29,7 @@ namespace rodbc
 /**
  * @brief The Environment class
  */
-class Environment
+class Environment : private boost::noncopyable
 {
 public:
     Environment();
@@ -67,6 +67,10 @@ public:
     Connection( Environment& env, const char* const connStr );
     ~Connection();
 
+    Connection( Connection && );
+    Connection& operator= ( Connection&& );
+
+public:
     DBMS dbms() const;
 
     IsolationLevel isolationLevel() const;
@@ -93,8 +97,9 @@ public:
     ~Transaction();
 
     Transaction( Transaction&& );
-    Transaction& operator=( Transaction&& );
+    Transaction& operator= ( Transaction&& );
 
+public:
     void commit();
 
 private:
