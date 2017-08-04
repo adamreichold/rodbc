@@ -24,24 +24,10 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <functional>
 #include <stdexcept>
 #include <string>
+#include <iosfwd>
 
 namespace rodbc
 {
-namespace detail
-{
-
-void assign( char* const dst, long& dst_ind, const char* const src, const long src_ind );
-void assign( char* const dst, long& dst_ind, const std::string& src );
-void assign( char* const dst, long& dst_ind, const char* const src );
-
-int compare( const char* const lhs, const long lhs_ind, const char* const rhs, const long rhs_ind );
-
-std::string str( const char* const val, const long ind );
-const char* c_str( char* const val, const long ind );
-
-std::size_t hash( const char* const val, const long ind );
-
-}
 
 /**
  * @brief The Exception class
@@ -111,6 +97,8 @@ template< std::size_t Size > bool operator<= ( const String< Size >& lhs, const 
 template< std::size_t Size > bool operator> ( const String< Size >& lhs, const String< Size >& rhs );
 template< std::size_t Size > bool operator>= ( const String< Size >& lhs, const String< Size >& rhs );
 
+template< std::size_t Size > std::ostream& operator<< ( std::ostream& stream, const String< Size >& val );
+
 /**
  * @brief The Timestamp struct
  */
@@ -166,6 +154,22 @@ private:
 
 template< typename Type > bool operator== ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
 template< typename Type > bool operator!= ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
+
+namespace detail
+{
+
+void assign( char* const dst, long& dst_ind, const char* const src, const long src_ind );
+void assign( char* const dst, long& dst_ind, const std::string& src );
+void assign( char* const dst, long& dst_ind, const char* const src );
+
+int compare( const char* const lhs, const long lhs_ind, const char* const rhs, const long rhs_ind );
+
+std::string str( const char* const val, const long ind );
+const char* c_str( char* const val, const long ind );
+
+std::size_t hash( const char* const val, const long ind );
+
+}
 
 template< std::size_t Size >
 inline String< Size >::String()
@@ -233,6 +237,18 @@ void String< Size >::clear()
 }
 
 template< std::size_t Size >
+inline std::string String< Size >::str() const
+{
+    return detail::str( val_, ind_ );
+}
+
+template< std::size_t Size >
+inline const char* String< Size >::c_str() const
+{
+    return detail::c_str( const_cast< char* >( val_ ), ind_ );
+}
+
+template< std::size_t Size >
 inline bool operator== ( const String< Size >& lhs, const String< Size >& rhs )
 {
     return detail::compare( lhs.val_, lhs.ind_, rhs.val_, rhs.ind_ ) == 0;
@@ -269,15 +285,9 @@ inline bool operator>= ( const String< Size >& lhs, const String< Size >& rhs )
 }
 
 template< std::size_t Size >
-inline std::string String< Size >::str() const
+inline std::ostream& operator<< ( std::ostream& stream, const String< Size >& val )
 {
-    return detail::str( val_, ind_ );
-}
-
-template< std::size_t Size >
-inline const char* String< Size >::c_str() const
-{
-    return detail::c_str( const_cast< char* >( val_ ), ind_ );
+    return stream << val.c_str();
 }
 
 inline bool operator!= ( const Timestamp& lhs, const Timestamp& rhs )

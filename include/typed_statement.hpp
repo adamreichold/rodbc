@@ -27,46 +27,6 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace rodbc
 {
-namespace detail
-{
-
-struct ParamBinder
-{
-    Statement* const stmt;
-
-    template< typename Param >
-    void operator() ( const Param& param ) const
-    {
-        stmt->bindParam( param );
-    }
-};
-
-template< typename Params >
-inline void bindParams( Statement& stmt, const Params& params )
-{
-    stmt.rebindParams();
-    boost::fusion::for_each( params, detail::ParamBinder{ &stmt } );
-}
-
-struct ColBinder
-{
-    Statement* const stmt;
-
-    template< typename Col >
-    void operator() ( Col& col ) const
-    {
-        stmt->bindCol( col );
-    }
-};
-
-template< typename Cols >
-inline void bindCols( Statement& stmt, Cols& cols )
-{
-    stmt.rebindCols();
-    boost::fusion::for_each( cols, detail::ColBinder{ &stmt } );
-}
-
-}
 
 /**
  * @brief The TypedStatement class template
@@ -134,6 +94,47 @@ private:
 
     void bindCols();
 };
+
+namespace detail
+{
+
+struct ParamBinder
+{
+    Statement* const stmt;
+
+    template< typename Param >
+    void operator() ( const Param& param ) const
+    {
+        stmt->bindParam( param );
+    }
+};
+
+template< typename Params >
+inline void bindParams( Statement& stmt, const Params& params )
+{
+    stmt.rebindParams();
+    boost::fusion::for_each( params, detail::ParamBinder{ &stmt } );
+}
+
+struct ColBinder
+{
+    Statement* const stmt;
+
+    template< typename Col >
+    void operator() ( Col& col ) const
+    {
+        stmt->bindCol( col );
+    }
+};
+
+template< typename Cols >
+inline void bindCols( Statement& stmt, Cols& cols )
+{
+    stmt.rebindCols();
+    boost::fusion::for_each( cols, detail::ColBinder{ &stmt } );
+}
+
+}
 
 template< typename Params, typename Cols >
 inline TypedStatement< Params, Cols >::TypedStatement( Connection& conn, const char* const stmt )

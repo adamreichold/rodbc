@@ -189,7 +189,7 @@ std::string to_string( const Timestamp& ts )
             "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ"
     );
 
-    return boost::str(
+    return str(
         format % ts.year % ts.month % ts.day % ts.hour % ts.minute % ts.second % ts.fraction
     );
 }
