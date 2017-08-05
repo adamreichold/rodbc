@@ -35,6 +35,9 @@ public:
     Environment();
     ~Environment();
 
+    Environment( Environment&& ) noexcept;
+    Environment& operator= ( Environment&& ) noexcept;
+
 private:
     void* env_;
 
@@ -67,8 +70,8 @@ public:
     Connection( Environment& env, const char* const connStr );
     ~Connection();
 
-    Connection( Connection && );
-    Connection& operator= ( Connection&& );
+    Connection( Connection && ) noexcept;
+    Connection& operator= ( Connection&& ) noexcept;
 
 public:
     DBMS dbms() const;
@@ -96,8 +99,8 @@ public:
     Transaction( Connection& conn );
     ~Transaction();
 
-    Transaction( Transaction&& );
-    Transaction& operator= ( Transaction&& );
+    Transaction( Transaction&& ) noexcept;
+    Transaction& operator= ( Transaction&& ) noexcept;
 
 public:
     void commit();

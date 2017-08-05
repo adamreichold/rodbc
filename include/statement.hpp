@@ -40,6 +40,9 @@ public:
     Statement( Connection& conn, const char* const stmt );
     ~Statement();
 
+    Statement( Statement&& ) noexcept;
+    Statement& operator= ( Statement&& ) noexcept;
+
 public:
     Statement& bindParam( const std::int8_t& param );
     Statement& bindParam( const std::int16_t& param );
@@ -174,8 +177,8 @@ public:
 
 private:
     void* stmt_;
-    std::size_t param_{ 0 };
-    std::size_t col_{ 0 };
+    std::size_t param_;
+    std::size_t col_;
 
     Statement& doBindStringParam( const char* const data, const std::size_t length, const long* const indicator );
     Statement& doBindStringCol( char* const data, const std::size_t length, long* const indicator );

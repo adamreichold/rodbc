@@ -74,6 +74,8 @@ DEF_ODBC_TRAITS( Timestamp, SQL_TIMESTAMP_STRUCT, SQL_C_TIMESTAMP, SQL_TIMESTAMP
 }
 
 Statement::Statement( Connection& conn, const char* const stmt )
+: param_{ 0 }
+, col_{ 0 }
 {
    check( ::SQLAllocHandle( SQL_HANDLE_STMT, conn.dbc_, &stmt_ ), SQL_HANDLE_DBC, conn.dbc_ );
    check( ::SQLPrepare( stmt_, (SQLCHAR*) stmt, SQL_NTS ), SQL_HANDLE_STMT, stmt_ );
@@ -87,6 +89,23 @@ Statement::~Statement()
 
         stmt_ = nullptr;
     }
+}
+
+Statement::Statement( Statement&& that ) noexcept
+: param_{ that.param_ }
+, col_{ that.col_ }
+{
+    stmt_ = that.stmt_;
+    that.stmt_ = nullptr;
+}
+
+Statement& Statement::operator= ( Statement&& that ) noexcept
+{
+    std::swap( stmt_, that.stmt_ );
+    std::swap( param_, that.param_ );
+    std::swap( col_, that.col_ );
+
+    return *this;
 }
 
 #define DEF_BIND_PARAM( type ) \

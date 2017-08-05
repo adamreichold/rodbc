@@ -59,6 +59,19 @@ Environment::~Environment()
     }
 }
 
+Environment::Environment( Environment&& that ) noexcept
+{
+    env_ = that.env_;
+    that.env_ = nullptr;
+}
+
+Environment& Environment::operator= ( Environment&& that ) noexcept
+{
+    std::swap( env_, that.env_ );
+
+    return *this;
+}
+
 Connection::Connection( Environment& env, const char* const connStr )
 {
     check( ::SQLAllocHandle( SQL_HANDLE_DBC, env.env_, &dbc_ ), SQL_HANDLE_ENV, env.env_ );
@@ -76,13 +89,13 @@ Connection::~Connection()
     }
 }
 
-Connection::Connection( Connection&& that )
+Connection::Connection( Connection&& that ) noexcept
 {
     dbc_ = that.dbc_;
     that.dbc_ = nullptr;
 }
 
-Connection& Connection::operator= ( Connection&& that )
+Connection& Connection::operator= ( Connection&& that ) noexcept
 {
     std::swap( dbc_, that.dbc_ );
 
@@ -194,13 +207,13 @@ Transaction::~Transaction()
     }
 }
 
-Transaction::Transaction( Transaction&& that )
+Transaction::Transaction( Transaction&& that ) noexcept
 {
     dbc_ = that.dbc_;
     that.dbc_ = nullptr;
 }
 
-Transaction& Transaction::operator= ( Transaction&& that )
+Transaction& Transaction::operator= ( Transaction&& that ) noexcept
 {
     std::swap( dbc_, that.dbc_ );
 
