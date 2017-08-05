@@ -9,7 +9,7 @@ The test suite uses a scratch database, an in-memory SQLite database by default,
 
 The API has three layers:
  * The `Environment`, `Connection`, `Transaction` and `Statement` classes are the lowest layer providing direct access to binding statements to arbitrary objects.
- * The `TypedStatement` class uses Boost.Fusion to automatically handle the binding of adapted structures including sets of parameters and rows.
+ * The `TypedStatement` and `StagedStatement` classes use Boost.Fusion to automatically handle the binding of adapted structures including sets of parameters and rows.
  * The `Database` class uses Boost.Thread to provide thread-local connections with associated state and automatic detection of lost connections.
 
  For usage examples and further discussions, please refer to the unit tests and the inline documentation.
