@@ -56,18 +56,29 @@ Database::Database( const char* const connStr )
 
 Database::Transaction::Transaction( Database& database )
 : BoundTransaction{ database }
+, stats_{ database.stats_ }
 {
+    stats_.transactions++;
+    stats_.activeTransactions++;
+}
+
+Database::Transaction::~Transaction()
+{
+    stats_.activeTransactions--;
 }
 
 void Database::Transaction::commit()
 {
     doCommit();
+
+    stats_.committedTransactions++;
 }
 
 Database::InsertFoo::InsertFoo( Database& database )
 : BoundStatement{ database }
 , foo{ stmts_.insertFoo.params() }
 {
+    database.stats_.insertFoo++;
 }
 
 void Database::InsertFoo::exec()
@@ -79,6 +90,7 @@ Database::SelectAllFoo::SelectAllFoo( Database& database )
 : BoundStatement{ database }
 , foo{ stmts_.selectAllFoo.cols() }
 {
+    database.stats_.selectAllFoo++;
 }
 
 void Database::SelectAllFoo::exec()
@@ -95,6 +107,7 @@ Database::InsertBar::InsertBar( Database& database )
 : BoundStatement{ database }
 , bar{ stmts_.insertBar.params() }
 {
+    database.stats_.insertBar++;
 }
 
 void Database::InsertBar::exec()
@@ -107,6 +120,7 @@ Database::SelectBarByA::SelectBarByA( Database& database )
 , a{ std::get< 0 >( stmts_.selectBarByA.params() ) }
 , bar{ stmts_.selectBarByA.cols() }
 {
+    database.stats_.selectBarByA++;
 }
 
 void Database::SelectBarByA::exec()
@@ -117,6 +131,11 @@ void Database::SelectBarByA::exec()
 bool Database::SelectBarByA::fetch()
 {
     return doFetch( stmts_.selectBarByA );
+}
+
+const Database::Stats& Database::stats() const noexcept
+{
+    return stats_;
 }
 
 }

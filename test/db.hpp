@@ -24,6 +24,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/fusion/include/define_struct.hpp>
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -50,11 +51,17 @@ struct Database : private rodbc::Database< Statements >
 {
     Database( const char* const connStr );
 
+    struct Stats;
+
     struct Transaction : BoundTransaction
     {
         Transaction( Database& database );
+        ~Transaction();
 
         void commit();
+
+    private:
+        Stats& stats_;
     };
 
     struct InsertFoo : BoundStatement
@@ -76,7 +83,7 @@ struct Database : private rodbc::Database< Statements >
         bool fetch();
     };
 
-    struct InsertBar: BoundStatement
+    struct InsertBar : BoundStatement
     {
         std::vector< Bar >& bar;
 
@@ -95,6 +102,24 @@ struct Database : private rodbc::Database< Statements >
         void exec();
         bool fetch();
     };
+
+public:
+    struct Stats
+    {
+        std::atomic_size_t transactions;
+        std::atomic_size_t committedTransactions;
+        std::atomic_int activeTransactions;
+
+        std::atomic_size_t insertFoo;
+        std::atomic_size_t selectAllFoo;
+        std::atomic_size_t insertBar;
+        std::atomic_size_t selectBarByA;
+    };
+
+    const Stats& stats() const noexcept;
+
+private:
+    Stats stats_;
 };
 
 }
