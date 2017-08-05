@@ -22,6 +22,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "statement.hpp"
 
+#include <boost/fusion/include/flatten.hpp>
 #include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/std_tuple.hpp>
 
@@ -113,7 +114,7 @@ template< typename Params >
 inline void bindParams( Statement& stmt, const Params& params )
 {
     stmt.rebindParams();
-    boost::fusion::for_each( params, detail::ParamBinder{ &stmt } );
+    boost::fusion::for_each( boost::fusion::flatten( params ), detail::ParamBinder{ &stmt } );
 }
 
 struct ColBinder
@@ -131,7 +132,7 @@ template< typename Cols >
 inline void bindCols( Statement& stmt, Cols& cols )
 {
     stmt.rebindCols();
-    boost::fusion::for_each( cols, detail::ColBinder{ &stmt } );
+    boost::fusion::for_each( boost::fusion::flatten( cols ), detail::ColBinder{ &stmt } );
 }
 
 }

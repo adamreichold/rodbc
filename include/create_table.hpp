@@ -1,7 +1,28 @@
+/*
+
+Copyright 2017 Adam Reichold
+
+This file is part of rodbc.
+
+rodbc is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+rodbc is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
 #pragma once
 
 #include <types.hpp>
 
+#include <boost/fusion/include/flatten_view.hpp>
 #include <boost/mpl/for_each.hpp>
 
 #include <vector>
@@ -13,7 +34,6 @@ class Connection;
 
 constexpr unsigned DROP_TABLE_IF_EXISTS = 1 << 0;
 constexpr unsigned TEMPORARY_TABLE = 1 << 1;
-constexpr unsigned FIRST_COLUMN_IS_PRIMARY_KEY = 1 << 2;
 
 /**
  * @brief The CreateTable struct template
@@ -21,7 +41,7 @@ constexpr unsigned FIRST_COLUMN_IS_PRIMARY_KEY = 1 << 2;
 template< typename Columns >
 struct CreateTable
 {
-    CreateTable( Connection& conn, const char* const tableName, const std::vector< const char* >& columnNames, const unsigned flags = 0 );
+    CreateTable( Connection& conn, const char* const tableName, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& primaryKey = {}, const unsigned flags = 0 );
 };
 
 namespace detail
@@ -45,29 +65,26 @@ template< typename Type > struct ColumnType< Nullable< Type > > { static constex
 void dropTableIfExists( Connection& conn, const char* const name );
 void createTable( Connection& conn, const char* const name, const char* const definition, const bool temporary );
 
-void defineColumn( std::string& definition, const char* const name, const char* const type, const bool first, const bool firstIsPrimaryKey );
+void defineColumn( std::string& definition, const char* const name, const char* const type );
+void definePrimaryKey( std::string& definition, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& columns );
 
-struct DefineColumns
+struct ColumnDefiner
 {
-    DefineColumns( std::string& definition, const std::vector< const char* >& names, const bool firstIsPrimaryKey )
-    : definition_{ definition }
-    , names_{ names }
-    , firstIsPrimaryKey_{ firstIsPrimaryKey }
+    ColumnDefiner( std::string& tableDefinition, const std::vector< const char* >& columnNames )
+    : tableDefinition_{ tableDefinition }
+    , columnNames_{ columnNames }
     {
     }
 
     template< typename Type >
     void operator() ( const Type& )
     {
-        defineColumn( definition_, names_[ index_ ], ColumnType< Type >::value, index_ == 0, firstIsPrimaryKey_ );
-
-        ++index_;
+        defineColumn( tableDefinition_, columnNames_.at( index_++ ), ColumnType< Type >::value );
     }
 
 private:
-    std::string& definition_;
-    const std::vector< const char* >& names_;
-    const bool firstIsPrimaryKey_;
+    std::string& tableDefinition_;
+    const std::vector< const char* >& columnNames_;
 
     std::size_t index_{ 0 };
 };
@@ -75,7 +92,7 @@ private:
 }
 
 template< typename Columns >
-inline CreateTable< Columns >::CreateTable( Connection& conn, const char* const tableName, const std::vector< const char* >& columnNames, const unsigned flags )
+inline CreateTable< Columns >::CreateTable( Connection& conn, const char* const tableName, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& primaryKey, const unsigned flags )
 {
     if ( flags & DROP_TABLE_IF_EXISTS )
     {
@@ -83,7 +100,8 @@ inline CreateTable< Columns >::CreateTable( Connection& conn, const char* const 
     }
 
     std::string tableDefinition;
-    boost::mpl::for_each< Columns >( detail::DefineColumns{ tableDefinition, columnNames, flags & FIRST_COLUMN_IS_PRIMARY_KEY } );
+    boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( detail::ColumnDefiner{ tableDefinition, columnNames } );
+    detail::definePrimaryKey( tableDefinition, columnNames, primaryKey );
 
     detail::createTable( conn, tableName, tableDefinition.c_str(), flags & TEMPORARY_TABLE );
 }

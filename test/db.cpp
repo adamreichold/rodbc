@@ -39,8 +39,8 @@ struct Statements
     rodbc::TypedStatement< std::tuple< float >, std::vector< Bar > > selectBarByA;
 
     Statements( rodbc::Connection& conn )
-    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
-    , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    : createFoo{ conn, "foo", { "x", "y", "z" }, {}, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    , createBar{ conn, "bar", { "a", "b", "c" }, {}, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
     , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
@@ -159,8 +159,8 @@ struct Statements
     rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
     Statements( rodbc::Connection& conn )
-    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
-    , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    : createFoo{ conn, "foo", { "x", "y", "z" }, {}, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    , createBar{ conn, "bar", { "a", "b", "c" }, {}, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
     , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }

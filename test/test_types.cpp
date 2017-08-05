@@ -52,8 +52,8 @@ BOOST_FIXTURE_TEST_SUITE( exception, Fixture )
 BOOST_AUTO_TEST_CASE( canDetectConstraintViolation )
 {
     rodbc::CreateTable< std::tuple< int > >{
-        conn, "tbl", { "col" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE | rodbc::FIRST_COLUMN_IS_PRIMARY_KEY
+        conn, "tbl", { "col" }, { 0 },
+        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
     };
 
     rodbc::Statement stmt{ conn, "INSERT INTO tbl (col) VALUES (?);" };
