@@ -20,10 +20,11 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "statement.hpp"
 
-#include "util.hpp"
+#include "create_table.hpp"
 
-#include <boost/fusion/include/at_key.hpp>
-#include <boost/fusion/include/map.hpp>
+#include "fixture.hpp"
+
+#include <boost/fusion/include/std_tuple.hpp>
 #include <boost/mpl/joint_view.hpp>
 #include <boost/mpl/list.hpp>
 #include <boost/test/unit_test.hpp>
@@ -47,38 +48,10 @@ bool createSingleColumnTable( rodbc::Connection& conn )
         return false;
     }
 
-    using boost::fusion::pair;
-    using boost::fusion::make_pair;
-
-    static const boost::fusion::map<
-        pair< std::int8_t, const char* >,
-        pair< std::int16_t, const char* >,
-        pair< std::int32_t, const char* >,
-        pair< std::int64_t, const char* >,
-        pair< std::uint8_t, const char* >,
-        pair< std::uint16_t, const char* >,
-        pair< std::uint32_t, const char* >,
-        pair< std::uint64_t, const char* >,
-        pair< float, const char* >,
-        pair< double, const char* >,
-        pair< rodbc::String< 32 >, const char* >
-    > sqlTypes{
-        make_pair< std::int8_t >( "TINYINT" ),
-        make_pair< std::int16_t >( "SMALLINT" ),
-        make_pair< std::int32_t >( "INT" ),
-        make_pair< std::int64_t >( "BIGINT" ),
-        make_pair< std::uint8_t >( "TINYINT UNSIGNED" ),
-        make_pair< std::uint16_t >( "SMALLINT UNSIGNED" ),
-        make_pair< std::uint32_t >( "INT UNSIGNED" ),
-        make_pair< std::uint64_t >( "BIGINT UNSIGNED" ),
-        make_pair< float >( "REAL" ),
-        make_pair< double >( "DOUBLE PRECISION" ),
-        make_pair< rodbc::String< 32 > >( "TEXT" )
+    rodbc::CreateTable< std::tuple< Type > >{
+        conn, "tbl", { "col" },
+        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
     };
-
-    const char* const sqlType = boost::fusion::at_key< Type >( sqlTypes );
-
-    createTable( conn, "tbl", str( boost::format( "col %s" ) % sqlType ).c_str() );
 
     return true;
 }

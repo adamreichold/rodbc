@@ -20,7 +20,11 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "types.hpp"
 
-#include "util.hpp"
+#include "create_table.hpp"
+
+#include "fixture.hpp"
+
+#include <boost/fusion/include/std_tuple.hpp>
 
 #include <boost/test/unit_test.hpp>
 
@@ -47,9 +51,12 @@ BOOST_FIXTURE_TEST_SUITE( exception, Fixture )
 
 BOOST_AUTO_TEST_CASE( canDetectConstraintViolation )
 {
-    createTable( conn, "n", "n INT PRIMARY KEY" );
+    rodbc::CreateTable< std::tuple< int > >{
+        conn, "tbl", { "col" },
+        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE | rodbc::FIRST_COLUMN_IS_PRIMARY_KEY
+    };
 
-    rodbc::Statement stmt{ conn, "INSERT INTO n (n) VALUES (?);" };
+    rodbc::Statement stmt{ conn, "INSERT INTO tbl (col) VALUES (?);" };
 
     const int n = 1;
     stmt.bindParam( n );

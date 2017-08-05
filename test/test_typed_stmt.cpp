@@ -20,7 +20,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "typed_statement.hpp"
 
-#include "util.hpp"
+#include "fixture.hpp"
 
 #include <boost/test/unit_test.hpp>
 

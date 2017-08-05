@@ -20,31 +20,17 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "db.hpp"
 
+#include "create_table.hpp"
 #include "database.ipp"
 #include "typed_statement.hpp"
-
-#include "util.hpp"
-
-namespace
-{
-
-struct CreateTables
-{
-    CreateTables( rodbc::Connection& conn )
-    {
-        createTable( conn, "foo", "x INT, y INT, z INT" );
-        createTable( conn, "bar", "a FLOAT, b FLOAT, c FLOAT" );
-    }
-};
-
-}
 
 namespace foobar
 {
 
 struct Statements
 {
-    CreateTables tables;
+    rodbc::CreateTable< Foo > createFoo;
+    rodbc::CreateTable< Bar > createBar;
 
     rodbc::TypedStatement< Foo, std::tuple<> > insertFoo;
     rodbc::TypedStatement< std::tuple<>, Foo > selectAllFoo;
@@ -53,7 +39,8 @@ struct Statements
     rodbc::TypedStatement< std::tuple< float >, std::vector< Bar > > selectBarByA;
 
     Statements( rodbc::Connection& conn )
-    : tables{ conn }
+    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
     , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
@@ -143,7 +130,8 @@ Database::~Database() = default;
 
 struct Statements
 {
-    CreateTables tables;
+    rodbc::CreateTable< std::tuple< int, int, int > > createFoo;
+    rodbc::CreateTable< std::tuple< float, float, float > > createBar;
 
     rodbc::TypedStatement< std::tuple< int, int, int >, std::tuple<> > insertFoo;
     rodbc::TypedStatement< std::tuple<>, std::tuple< int, int, int > > selectAllFoo;
@@ -152,7 +140,8 @@ struct Statements
     rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
     Statements( rodbc::Connection& conn )
-    : tables{ conn }
+    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
     , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
