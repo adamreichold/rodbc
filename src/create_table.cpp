@@ -32,7 +32,6 @@ void dropTableIfExists( Connection& conn, const char* const name )
     std::string stmt{ "DROP TABLE IF EXISTS " };
 
     stmt += name;
-    stmt += ';';
 
     Statement{ conn, stmt.c_str() }.exec();
 }
@@ -50,7 +49,7 @@ void createTable( Connection& conn, const char* const name, const char* const de
     stmt += name;
     stmt += " (";
     stmt += definition;
-    stmt += ");";
+    stmt += ')';
 
     Statement{ conn, stmt.c_str() }.exec();
 }

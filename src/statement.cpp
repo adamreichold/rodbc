@@ -32,7 +32,7 @@ namespace
 
 inline void check( const SQLRETURN rc, const SQLSMALLINT type, const SQLHANDLE handle )
 {
-    if ( !SQL_SUCCEEDED( rc ) )
+    if ( !SQL_SUCCEEDED( rc ) && rc != SQL_NO_DATA )
     {
         throw Exception{ type, handle };
     }
