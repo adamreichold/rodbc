@@ -36,7 +36,13 @@ void dropTableIfExists( Connection& conn, const char* const name )
     Statement{ conn, stmt.c_str() }.exec();
 }
 
-void createTable( Connection& conn, const char* const name, const char* const definition, const bool temporary )
+void createTable(
+    Connection& conn, const char* const name,
+    const char* const* const columnNamesBegin, const char* const* const columnNamesEnd,
+    const char* const* const columnTypesBegin, const char* const* const columnTypesEnd,
+    const std::size_t* const primaryKeyBegin, const std::size_t* const primaryKeyEnd,
+    const bool temporary
+)
 {
     std::string stmt{ "CREATE " };
 
@@ -48,44 +54,39 @@ void createTable( Connection& conn, const char* const name, const char* const de
     stmt += "TABLE ";
     stmt += name;
     stmt += " (";
-    stmt += definition;
+
+    for ( auto columnName = columnNamesBegin, columnType = columnTypesBegin; columnName != columnNamesEnd && columnType != columnTypesEnd; ++columnName, ++columnType )
+    {
+        if ( columnName != columnNamesBegin )
+        {
+            stmt += ", ";
+        }
+
+        stmt += *columnName;
+        stmt += ' ';
+        stmt += *columnType;
+    }
+
+    if ( primaryKeyBegin != primaryKeyEnd )
+    {
+        stmt += ", PRIMARY KEY (";
+
+        for ( auto primaryKey = primaryKeyBegin; primaryKey != primaryKeyEnd; ++primaryKey )
+        {
+            if ( primaryKey != primaryKeyBegin )
+            {
+                stmt += ", ";
+            }
+
+            stmt += columnNamesBegin[ *primaryKey ];
+        }
+
+        stmt += ')';
+    }
+
     stmt += ')';
 
     Statement{ conn, stmt.c_str() }.exec();
-}
-
-void defineColumn( std::string& definition, const char* const name, const char* const type )
-{
-    if ( !definition.empty() )
-    {
-        definition += ", ";
-    }
-
-    definition += name;
-    definition += ' ';
-    definition += type;
-}
-
-void definePrimaryKey( std::string& definition, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& columns )
-{
-    if ( columns.empty() )
-    {
-        return;
-    }
-
-    definition += ", PRIMARY KEY (";
-
-    for ( std::size_t index = 0; index < columns.size(); ++index )
-    {
-        if ( index > 0 )
-        {
-            definition += ", ";
-        }
-
-        definition += columnNames[ columns[ index ] ];
-    }
-
-    definition += ')';
 }
 
 }

@@ -24,8 +24,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/fusion/include/flatten_view.hpp>
 #include <boost/mpl/for_each.hpp>
-
-#include <vector>
+#include <boost/mpl/size.hpp>
 
 namespace rodbc
 {
@@ -41,7 +40,10 @@ constexpr unsigned TEMPORARY_TABLE = 1 << 1;
 template< typename Columns >
 struct CreateTable
 {
-    CreateTable( Connection& conn, const char* const tableName, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& primaryKey = {}, const unsigned flags = 0 );
+    using ColumnNames = std::initializer_list< const char* >;
+    using PrimaryKey = std::initializer_list< std::size_t >;
+
+    CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const PrimaryKey& primaryKey = {}, const unsigned flags = 0 );
 };
 
 namespace detail
@@ -62,48 +64,47 @@ template< std::size_t Size > struct ColumnType< String< Size > > { static conste
 template<> struct ColumnType< Timestamp > { static constexpr const char* value = "TIMESTAMP"; };
 template< typename Type > struct ColumnType< Nullable< Type > > { static constexpr const char* value = ColumnType< Type >::value; };
 
-void dropTableIfExists( Connection& conn, const char* const name );
-void createTable( Connection& conn, const char* const name, const char* const definition, const bool temporary );
-
-void defineColumn( std::string& definition, const char* const name, const char* const type );
-void definePrimaryKey( std::string& definition, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& columns );
-
-struct ColumnDefiner
+struct ColumnTypeInserter
 {
-    ColumnDefiner( std::string& tableDefinition, const std::vector< const char* >& columnNames )
-    : tableDefinition_{ tableDefinition }
-    , columnNames_{ columnNames }
-    {
-    }
+    const char** values;
 
     template< typename Type >
     void operator() ( const Type& )
     {
-        defineColumn( tableDefinition_, columnNames_.at( index_++ ), ColumnType< Type >::value );
+        *values++ = ColumnType< Type >::value;
     }
-
-private:
-    std::string& tableDefinition_;
-    const std::vector< const char* >& columnNames_;
-
-    std::size_t index_{ 0 };
 };
+
+void dropTableIfExists( Connection& conn, const char* const name );
+
+void createTable(
+    Connection& conn, const char* const name,
+    const char* const* const columnNamesBegin, const char* const* const columnNamesEnd,
+    const char* const* const columnTypesBegin, const char* const* const columnTypesEnd,
+    const std::size_t* const primaryKeyBegin, const std::size_t* const primaryKeyEnd,
+    const bool temporary
+);
 
 }
 
 template< typename Columns >
-inline CreateTable< Columns >::CreateTable( Connection& conn, const char* const tableName, const std::vector< const char* >& columnNames, const std::vector< std::size_t >& primaryKey, const unsigned flags )
+inline CreateTable< Columns >::CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const PrimaryKey& primaryKey, const unsigned flags )
 {
     if ( flags & DROP_TABLE_IF_EXISTS )
     {
         detail::dropTableIfExists( conn, tableName );
     }
 
-    std::string tableDefinition;
-    boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( detail::ColumnDefiner{ tableDefinition, columnNames } );
-    detail::definePrimaryKey( tableDefinition, columnNames, primaryKey );
+    const char* columnTypes[ boost::mpl::size< boost::fusion::flatten_view< Columns > >::value ];
+    boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( detail::ColumnTypeInserter{ columnTypes } );
 
-    detail::createTable( conn, tableName, tableDefinition.c_str(), flags & TEMPORARY_TABLE );
+    detail::createTable(
+        conn, tableName,
+        std::begin( columnNames ), std::end( columnNames ),
+        std::begin( columnTypes ), std::end( columnTypes ),
+        std::begin( primaryKey ), std::end( primaryKey ),
+        flags & TEMPORARY_TABLE
+    );
 }
 
 }

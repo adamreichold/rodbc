@@ -15,7 +15,7 @@ template< typename StagedParams, typename Params, typename Cols >
 class StagedStatement
 {
 public:
-    StagedStatement( Connection& conn, const char* const stagingTable, const std::vector< const char* >& stagingColumns, const char* const stmt );
+    StagedStatement( Connection& conn, const char* const stagingTable, const std::initializer_list< const char* >& stagingColumns, const char* const stmt );
 
     void resizeStagedParams( const std::int32_t size );
     StagedParams& stagedParams( const std::int32_t index );
@@ -38,15 +38,15 @@ namespace detail
 {
 
 std::string deleteFrom( const char* const tableName );
-std::string insertInto( const char* const tableName, const std::vector< const char* >& columnNames );
+std::string insertInto( const char* const tableName, const char* const* const columnNamesBegin, const char* const* const columnNamesEnd );
 
 }
 
 template< typename StagedParams, typename Params, typename Cols >
-inline StagedStatement< StagedParams, Params, Cols >::StagedStatement( Connection& conn, const char* const stagingTable, const std::vector< const char* >& stagingColumns, const char* const stmt )
+inline StagedStatement< StagedParams, Params, Cols >::StagedStatement( Connection& conn, const char* const stagingTable, const std::initializer_list< const char* >& stagingColumns, const char* const stmt )
 : createStagingTable_{ conn, stagingTable, stagingColumns, { 0 }, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
 , deleteFromStagingTable_{ conn, detail::deleteFrom( stagingTable ).c_str() }
-, insertIntoStagingTable_{ conn, detail::insertInto( stagingTable, stagingColumns ).c_str() }
+, insertIntoStagingTable_{ conn, detail::insertInto( stagingTable, std::begin( stagingColumns ), std::end( stagingColumns ) ).c_str() }
 , stmt_{ conn, stmt }
 {
 }

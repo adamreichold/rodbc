@@ -34,28 +34,28 @@ std::string deleteFrom( const char* const tableName )
     return stmt;
 }
 
-std::string insertInto( const char* const tableName, const std::vector< const char* >& columnNames )
+std::string insertInto( const char* const tableName, const char* const* const columnNamesBegin, const char* const* const columnNamesEnd )
 {
     std::string stmt{ "INSERT INTO " };
 
     stmt += tableName;
     stmt += " (";
 
-    for ( std::size_t index = 0; index < columnNames.size(); ++index )
+    for ( auto columnName = columnNamesBegin; columnName != columnNamesEnd; ++columnName )
     {
-        if ( index > 0 )
+        if ( columnName != columnNamesBegin )
         {
             stmt += ", ";
         }
 
-        stmt += columnNames[ index ];
+        stmt += *columnName;
     }
 
     stmt += ") VALUES (";
 
-    for ( std::size_t index = 0; index < columnNames.size(); ++index )
+    for ( auto columnName = columnNamesBegin; columnName != columnNamesEnd; ++columnName )
     {
-        if ( index > 0 )
+        if ( columnName != columnNamesBegin )
         {
             stmt += ", ";
         }
