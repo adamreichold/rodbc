@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-#include "staged_statement.hpp"
+#include "staged_statement.ipp"
 
 namespace rodbc
 {

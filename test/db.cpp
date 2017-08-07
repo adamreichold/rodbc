@@ -20,9 +20,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "db.hpp"
 
-#include "create_table.hpp"
+#include "create_table.ipp"
 #include "database.ipp"
-#include "typed_statement.hpp"
+#include "typed_statement.ipp"
 
 namespace foobar
 {
