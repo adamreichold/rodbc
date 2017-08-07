@@ -33,7 +33,9 @@ template< typename StagedParams, typename Params, typename Cols >
 class StagedStatement
 {
 public:
-    StagedStatement( Connection& conn, const char* const stagingTable, const std::initializer_list< const char* >& stagingColumns, const char* const stmt );
+    using StagingColumns = typename CreateTable< std::pair< std::int32_t, StagedParams >, 0 >::ColumnNames;
+
+    StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt );
 
     void resizeStagedParams( const std::int32_t size );
     StagedParams& stagedParams( const std::int32_t index );

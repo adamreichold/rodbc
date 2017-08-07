@@ -37,7 +37,7 @@ std::string insertInto( const char* const tableName, const char* const* const co
 }
 
 template< typename StagedParams, typename Params, typename Cols >
-inline StagedStatement< StagedParams, Params, Cols >::StagedStatement( Connection& conn, const char* const stagingTable, const std::initializer_list< const char* >& stagingColumns, const char* const stmt )
+inline StagedStatement< StagedParams, Params, Cols >::StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt )
 : createStagingTable_{ conn, stagingTable, stagingColumns, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
 , deleteFromStagingTable_{ conn, detail::deleteFrom( stagingTable ).c_str() }
 , insertIntoStagingTable_{ conn, detail::insertInto( stagingTable, std::begin( stagingColumns ), std::end( stagingColumns ) ).c_str() }

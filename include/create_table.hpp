@@ -36,7 +36,7 @@ constexpr unsigned TEMPORARY_TABLE = 1 << 1;
 template< typename Columns, std::size_t... PrimaryKey >
 struct CreateTable
 {
-    using ColumnNames = std::initializer_list< const char* >;
+    struct ColumnNames;
 
     CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const unsigned flags = 0 );
 };

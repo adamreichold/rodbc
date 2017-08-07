@@ -94,20 +94,46 @@ void createTable(
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-inline CreateTable< Columns, PrimaryKey... >::CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const unsigned flags )
+struct CreateTable< Columns, PrimaryKey... >::ColumnNames
 {
-    if ( flags & DROP_TABLE_IF_EXISTS )
+    template< typename... Values >
+    ColumnNames( Values&&... values )
+    : values_{ std::forward< Values >( values )... }
     {
-        detail::dropTableIfExists( conn, tableName );
+        static_assert( detail::sizeOfColumns< Columns >() == sizeof...( Values ), "Number of columns and column names must be equal." );
     }
 
-    const char* columnTypes[ detail::sizeOfColumns< Columns >() ];
-    detail::forEachColumn< Columns >( detail::ColumnTypeInserter{ columnTypes } );
+    const char* const* begin() const
+    {
+        return std::begin( values_ );
+    }
+
+    const char* const* end() const
+    {
+        return std::end( values_ );
+    }
+
+private:
+    const char* const values_[ detail::sizeOfColumns< Columns >() ];
+};
+
+template< typename Columns, std::size_t... PrimaryKey >
+inline CreateTable< Columns, PrimaryKey... >::CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const unsigned flags )
+{
+    using namespace detail;
+
+    const char* columnTypes[ sizeOfColumns< Columns >() ];
+    forEachColumn< Columns >( ColumnTypeInserter{ columnTypes } );
 
     const std::size_t primaryKey[]{ PrimaryKey... };
-    static_assert( detail::areValidIndices< Columns, PrimaryKey... >(), "Primary key column indices must be valid." );
+    static_assert( areValidIndices< Columns, PrimaryKey... >(), "Primary key column indices must be valid." );
 
-    detail::createTable(
+    if ( flags & DROP_TABLE_IF_EXISTS )
+    {
+        dropTableIfExists( conn, tableName );
+    }
+
+    createTable(
         conn, tableName,
         std::begin( columnNames ), std::end( columnNames ),
         std::begin( columnTypes ), std::end( columnTypes ),
