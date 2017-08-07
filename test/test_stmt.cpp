@@ -21,6 +21,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include "statement.hpp"
 
 #include "create_table.hpp"
+#include "types.ipp"
 
 #include "fixture.hpp"
 
