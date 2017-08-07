@@ -97,7 +97,7 @@ template< std::size_t Size > bool operator<= ( const String< Size >& lhs, const 
 template< std::size_t Size > bool operator> ( const String< Size >& lhs, const String< Size >& rhs );
 template< std::size_t Size > bool operator>= ( const String< Size >& lhs, const String< Size >& rhs );
 
-template< std::size_t Size > std::ostream& operator<< ( std::ostream& stream, const String< Size >& val );
+template< std::size_t Size > std::ostream& operator<< ( std::ostream& stream, const String< Size >& string );
 
 /**
  * @brief The Timestamp struct
@@ -115,6 +115,8 @@ struct Timestamp
 
 bool operator== ( const Timestamp& lhs, const Timestamp& rhs );
 bool operator!= ( const Timestamp& lhs, const Timestamp& rhs );
+
+std::ostream& operator<< ( std::ostream& stream, const Timestamp& ts );
 
 Timestamp from_time_t( const std::time_t time );
 std::time_t to_time_t( const Timestamp& ts );
@@ -154,6 +156,8 @@ private:
 
 template< typename Type > bool operator== ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
 template< typename Type > bool operator!= ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
+
+template< typename Type > std::ostream& operator<< ( std::ostream& stream, const Nullable< Type >& nullable );
 
 namespace detail
 {
@@ -285,14 +289,14 @@ inline bool operator>= ( const String< Size >& lhs, const String< Size >& rhs )
 }
 
 template< std::size_t Size >
-inline std::ostream& operator<< ( std::ostream& stream, const String< Size >& val )
+inline std::ostream& operator<< ( std::ostream& stream, const String< Size >& string )
 {
-    return stream << val.c_str();
-}
+    if ( auto* const c_str = string.c_str() )
+    {
+        stream << c_str;
+    }
 
-inline bool operator!= ( const Timestamp& lhs, const Timestamp& rhs )
-{
-    return !( lhs == rhs );
+    return stream;
 }
 
 template< typename Type >
@@ -354,6 +358,17 @@ template< typename Type >
 inline bool operator!= ( const Nullable< Type >& lhs, const Nullable< Type >& rhs )
 {
     return !( lhs == rhs );
+}
+
+template< typename Type >
+inline std::ostream& operator<< ( std::ostream& stream, const Nullable< Type >& nullable )
+{
+    if ( const auto* const value = nullable.value() )
+    {
+        stream << *value;
+    }
+
+    return stream;
 }
 
 }
