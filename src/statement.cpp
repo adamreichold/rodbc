@@ -140,6 +140,7 @@ DEF_BIND_PARAM( Timestamp )
 
 Statement& Statement::rebindParams()
 {
+    check( ::SQLFreeStmt( stmt_, SQL_RESET_PARAMS ), SQL_HANDLE_STMT, stmt_ );
     param_ = 0;
 
     return *this;
@@ -177,6 +178,7 @@ DEF_BIND_COL( Timestamp )
 
 Statement& Statement::rebindCols()
 {
+    check( ::SQLFreeStmt( stmt_, SQL_UNBIND ), SQL_HANDLE_STMT, stmt_ );
     col_ = 0;
 
     return *this;
@@ -184,7 +186,7 @@ Statement& Statement::rebindCols()
 
 void Statement::exec()
 {
-    ::SQLCloseCursor( stmt_ );
+    check( ::SQLFreeStmt( stmt_, SQL_CLOSE ), SQL_HANDLE_STMT, stmt_ );
     check( ::SQLExecute( stmt_ ), SQL_HANDLE_STMT, stmt_ );
 }
 
