@@ -30,8 +30,8 @@ BOOST_FIXTURE_TEST_SUITE( stagedStmt, Fixture )
 
 BOOST_AUTO_TEST_CASE( canSelectByJoiningStagingTable )
 {
-    rodbc::CreateTable< std::tuple< int, int, int > >{
-        conn, "tbl", { "a", "b", "c" }, { 0, 1 },
+    rodbc::CreateTable< std::tuple< int, int, int >, 0, 1 >{
+        conn, "tbl", { "a", "b", "c" },
         rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
     };
 

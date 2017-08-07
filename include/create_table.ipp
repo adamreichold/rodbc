@@ -31,6 +31,18 @@ namespace rodbc
 namespace detail
 {
 
+template< typename Columns >
+inline constexpr std::size_t sizeOfColumns()
+{
+    return boost::mpl::size< boost::fusion::flatten_view< Columns > >::value;
+}
+
+template< typename Columns, typename Action >
+inline void forEachColumn( Action action )
+{
+    boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
+}
+
 template< typename Type > struct ColumnType;
 template<> struct ColumnType< std::int8_t > { static constexpr const char* value = "TINYINT"; };
 template<> struct ColumnType< std::int16_t > { static constexpr const char* value = "SMALLINT"; };
@@ -57,6 +69,18 @@ struct ColumnTypeInserter
     }
 };
 
+template< typename Columns >
+inline constexpr bool areValidIndices()
+{
+    return true;
+}
+
+template< typename Columns, std::size_t Index, std::size_t... Indices >
+inline constexpr bool areValidIndices()
+{
+    return sizeOfColumns< Columns >() > Index && areValidIndices< Columns, Indices... >();
+}
+
 void dropTableIfExists( Connection& conn, const char* const name );
 
 void createTable(
@@ -69,22 +93,25 @@ void createTable(
 
 }
 
-template< typename Columns >
-inline CreateTable< Columns >::CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const PrimaryKey& primaryKey, const unsigned flags )
+template< typename Columns, std::size_t... PrimaryKey >
+inline CreateTable< Columns, PrimaryKey... >::CreateTable( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const unsigned flags )
 {
     if ( flags & DROP_TABLE_IF_EXISTS )
     {
         detail::dropTableIfExists( conn, tableName );
     }
 
-    const char* columnTypes[ boost::mpl::size< boost::fusion::flatten_view< Columns > >::value ];
-    boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( detail::ColumnTypeInserter{ columnTypes } );
+    const char* columnTypes[ detail::sizeOfColumns< Columns >() ];
+    detail::forEachColumn< Columns >( detail::ColumnTypeInserter{ columnTypes } );
+
+    const std::size_t primaryKey[]{ PrimaryKey... };
+    static_assert( detail::areValidIndices< Columns, PrimaryKey... >(), "Primary key column indices must be valid." );
 
     detail::createTable(
         conn, tableName,
         std::begin( columnNames ), std::end( columnNames ),
         std::begin( columnTypes ), std::end( columnTypes ),
-        std::begin( primaryKey ), std::end( primaryKey ),
+        &primaryKey[ 0 ], &primaryKey[ sizeof... ( PrimaryKey ) ],
         flags & TEMPORARY_TABLE
     );
 }

@@ -49,7 +49,7 @@ bool createSingleColumnTable( rodbc::Connection& conn )
     }
 
     rodbc::CreateTable< std::tuple< Type > >{
-        conn, "tbl", { "col" }, {},
+        conn, "tbl", { "col" },
         rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
     };
 

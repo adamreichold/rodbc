@@ -46,7 +46,7 @@ public:
     bool fetch();
 
 private:
-    CreateTable< std::pair< std::int32_t, StagedParams > > createStagingTable_;
+    CreateTable< std::pair< std::int32_t, StagedParams >, 0 > createStagingTable_;
     TypedStatement< std::tuple<>, std::tuple<> > deleteFromStagingTable_;
     TypedStatement< std::vector< std::pair< std::int32_t, StagedParams > >, std::tuple<> > insertIntoStagingTable_;
     TypedStatement< Params, Cols > stmt_;
