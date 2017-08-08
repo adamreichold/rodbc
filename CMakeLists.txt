@@ -1,5 +1,7 @@
 cmake_minimum_required( VERSION 2.8 )
 
+project( rodbc CXX )
+
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra" )
 
 if( NOT CMAKE_BUILD_TYPE MATCHES Debug )
@@ -8,7 +10,6 @@ if( NOT CMAKE_BUILD_TYPE MATCHES Debug )
     set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto" )
 endif()
 
-project( rodbc CXX )
 
 find_package( Boost 1.60 COMPONENTS thread REQUIRED )
 include_directories( include ${Boost_INCLUDE_DIR} )
