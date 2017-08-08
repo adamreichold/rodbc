@@ -26,6 +26,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/mpl/for_each.hpp>
 #include <boost/mpl/size.hpp>
 
+#include <array>
+
 namespace rodbc
 {
 namespace detail
@@ -42,6 +44,9 @@ inline void forEachColumn( Action action )
 {
     boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
 }
+
+template< typename Columns >
+using ColumnNamesBase = std::array< const char*, sizeOfColumns< Columns >() >;
 
 template< typename Type > struct ColumnType;
 template<> struct ColumnType< std::int8_t > { static constexpr const char* value = "TINYINT"; };
@@ -94,27 +99,14 @@ void createTable(
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-struct CreateTable< Columns, PrimaryKey... >::ColumnNames
+struct CreateTable< Columns, PrimaryKey... >::ColumnNames : detail::ColumnNamesBase< Columns >
 {
     template< typename... Values >
     ColumnNames( Values&&... values )
-    : values_{ std::forward< Values >( values )... }
+    : detail::ColumnNamesBase< Columns >{ std::forward< Values >( values )... }
     {
-        static_assert( detail::sizeOfColumns< Columns >() == sizeof...( Values ), "Number of columns and column names must be equal." );
+        static_assert( detail::sizeOfColumns< Columns >() == sizeof... ( Values ), "Number of columns and column names must be equal." );
     }
-
-    const char* const* begin() const
-    {
-        return std::begin( values_ );
-    }
-
-    const char* const* end() const
-    {
-        return std::end( values_ );
-    }
-
-private:
-    const char* const values_[ detail::sizeOfColumns< Columns >() ];
 };
 
 template< typename Columns, std::size_t... PrimaryKey >
