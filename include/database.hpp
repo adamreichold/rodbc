@@ -36,7 +36,7 @@ template< typename Statements >
 class Database : private boost::noncopyable
 {
 public:
-    Database( const char* const connStr );
+    Database( std::string connStr );
 
 protected:
     class BoundTransaction : private boost::noncopyable
@@ -71,7 +71,7 @@ protected:
 private:
     boost::mutex mutex_;
     Environment env_;
-    const char* const connStr_;
+    const std::string connStr_;
 
     Connection makeConnection();
 

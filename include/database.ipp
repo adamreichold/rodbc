@@ -28,8 +28,8 @@ namespace rodbc
 {
 
 template< typename Statements >
-inline Database< Statements >::Database( const char* const connStr )
-: connStr_{ connStr }
+inline Database< Statements >::Database( std::string connStr )
+: connStr_{ std::move( connStr ) }
 {
 }
 
@@ -80,7 +80,7 @@ inline Connection Database< Statements >::makeConnection()
 {
     boost::lock_guard< boost::mutex > lock{ mutex_ };
 
-    return { env_, connStr_ };
+    return { env_, connStr_.c_str() };
 }
 
 
