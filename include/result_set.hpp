@@ -29,7 +29,7 @@ template< typename Stmt, typename Cols >
 class ResultSetIterator : public boost::iterator_facade< ResultSetIterator< Stmt, Cols >, const Cols, std::input_iterator_tag >
 {
 public:
-    ResultSetIterator();
+    constexpr ResultSetIterator();
     ResultSetIterator( Stmt& stmt );
 
 private:
@@ -58,12 +58,12 @@ template< typename Params, typename Cols >
 rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > begin( rodbc::TypedStatement< Params, Cols >& );
 
 template< typename Params, typename Cols >
-rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > end( rodbc::TypedStatement< Params, Cols >& );
+constexpr rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > end( rodbc::TypedStatement< Params, Cols >& );
 
 template< typename StagedParams, typename Params, typename Cols >
 rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > begin( rodbc::StagedStatement< StagedParams, Params, Cols >& );
 
 template< typename StagedParams, typename Params, typename Cols >
-rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > end( rodbc::StagedStatement< StagedParams, Params, Cols >& );
+constexpr rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > end( rodbc::StagedStatement< StagedParams, Params, Cols >& );
 
 }

@@ -26,7 +26,7 @@ namespace rodbc
 {
 
 template< typename Stmt, typename Cols >
-inline ResultSetIterator< Stmt, Cols >::ResultSetIterator()
+inline constexpr ResultSetIterator< Stmt, Cols >::ResultSetIterator()
 : stmt_{ nullptr }
 {
 }
@@ -71,7 +71,7 @@ inline rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > b
 }
 
 template< typename Params, typename Cols >
-inline rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > end( rodbc::TypedStatement< Params, Cols >& )
+inline constexpr rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > end( rodbc::TypedStatement< Params, Cols >& )
 {
     return {};
 }
@@ -83,7 +83,7 @@ inline rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, C
 }
 
 template< typename StagedParams, typename Params, typename Cols >
-inline rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > end( rodbc::StagedStatement< StagedParams, Params, Cols >& )
+inline constexpr rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > end( rodbc::StagedStatement< StagedParams, Params, Cols >& )
 {
     return {};
 }
