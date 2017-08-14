@@ -22,6 +22,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/iterator/iterator_facade.hpp>
 
+#include <vector>
+
 namespace rodbc
 {
 
@@ -41,6 +43,27 @@ private:
 
 private:
     Stmt* stmt_;
+};
+
+template< typename Stmt, typename Cols >
+class ResultSetIterator< Stmt, std::vector< Cols > > : public boost::iterator_facade< ResultSetIterator< Stmt, std::vector< Cols > >, const Cols, std::input_iterator_tag >
+{
+public:
+    constexpr ResultSetIterator();
+    ResultSetIterator( Stmt& stmt );
+
+private:
+    friend class boost::iterator_core_access;
+
+    void increment();
+    bool equal( const ResultSetIterator& other ) const;
+    const Cols& dereference() const;
+
+private:
+    Stmt* stmt_;
+    typename std::vector< Cols >::const_iterator it_;
+
+    void fetch();
 };
 
 template< typename Params, typename Cols >

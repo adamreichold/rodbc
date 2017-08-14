@@ -73,4 +73,39 @@ BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
     BOOST_CHECK_EQUAL( 128 * ( 128 - 1 ) / 2, sum );
 }
 
+BOOST_AUTO_TEST_CASE( canIterateThroughRowSets )
+{
+    rodbc::CreateTable< std::tuple< int > >{
+        conn, "tbl", { "col" },
+        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
+    };
+
+    rodbc::TypedStatement< std::tuple< int >, std::tuple<> > insertStmt{
+        conn, "INSERT INTO tbl (col) VALUES (?)"
+    };
+
+    for ( int index = 0; index < 128; ++index )
+    {
+        auto& stmt = insertStmt;
+        auto& params = stmt.params();
+
+        std::get< 0 >( params ) = index;
+
+        stmt.exec();
+    }
+
+    rodbc::TypedStatement< std::tuple<>, std::vector< std::tuple< int > > > selectStmt{
+        conn, "SELECT col FROM tbl", 3
+    };
+
+    BOOST_CHECK_NO_THROW( selectStmt.exec() );
+
+    const auto sum = std::accumulate( std::begin( selectStmt ), std::end( selectStmt ), 0, []( const int sum, const std::tuple< int >& row )
+    {
+        return sum + std::get< 0 >( row );
+    } );
+
+    BOOST_CHECK_EQUAL( 128 * ( 128 - 1 ) / 2, sum );
+}
+
 BOOST_AUTO_TEST_SUITE_END()

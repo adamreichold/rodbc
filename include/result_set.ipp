@@ -59,6 +59,60 @@ inline const Cols& ResultSetIterator< Stmt, Cols >::dereference() const
     return stmt_->cols();
 }
 
+template< typename Stmt, typename Cols >
+inline constexpr ResultSetIterator< Stmt, std::vector< Cols > >::ResultSetIterator()
+: stmt_{ nullptr }
+{
+}
+
+template< typename Stmt, typename Cols >
+inline ResultSetIterator< Stmt, std::vector< Cols > >::ResultSetIterator( Stmt& stmt )
+: stmt_{ &stmt }
+{
+    fetch();
+}
+
+template< typename Stmt, typename Cols >
+inline void ResultSetIterator< Stmt, std::vector< Cols > >::increment()
+{
+    if ( ++it_ == stmt_->cols().end() )
+    {
+        fetch();
+    }
+}
+
+template< typename Stmt, typename Cols >
+inline bool ResultSetIterator< Stmt, std::vector< Cols > >::equal( const ResultSetIterator& other ) const
+{
+    if ( !stmt_ )
+    {
+        return !other.stmt_;
+    }
+    else
+    {
+        return stmt_ == other.stmt_ && it_ == other.it_;
+    }
+}
+
+template< typename Stmt, typename Cols >
+inline const Cols& ResultSetIterator< Stmt, std::vector< Cols > >::dereference() const
+{
+    return *it_;
+}
+
+template< typename Stmt, typename Cols >
+inline void ResultSetIterator< Stmt, std::vector< Cols > >::fetch()
+{
+    if ( !stmt_->fetch() )
+    {
+        stmt_ = nullptr;
+    }
+    else
+    {
+        it_ = stmt_->cols().begin();
+    }
+}
+
 }
 
 namespace std
