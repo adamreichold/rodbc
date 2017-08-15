@@ -36,8 +36,8 @@ std::string insertInto( const char* const tableName, const char* const* const co
 
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline StagedStatement< StagedParams, Params, Cols >::StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt )
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline StagedStatement< StagedParams, Params, Cols, StagingIndex >::StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt )
 : createStagingTable_{ conn, stagingTable, stagingColumns, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
 , deleteFromStagingTable_{ conn, detail::deleteFrom( stagingTable ).c_str() }
 , insertIntoStagingTable_{ conn, detail::insertInto( stagingTable, std::begin( stagingColumns ), std::end( stagingColumns ) ).c_str() }
@@ -45,48 +45,50 @@ inline StagedStatement< StagedParams, Params, Cols >::StagedStatement( Connectio
 {
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline void StagedStatement< StagedParams, Params, Cols >::resizeStagedParams( const std::int32_t size )
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline void StagedStatement< StagedParams, Params, Cols, StagingIndex >::resizeStagedParams( const StagingIndex size )
 {
-    insertIntoStagingTable_.params().resize( size );
+    auto& params = insertIntoStagingTable_.params();
+
+    StagingIndex index = params.size();
+
+    params.resize( size );
+
+    for ( ; index < size; ++index )
+    {
+        params[ index ].first = index;
+    }
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline StagedParams& StagedStatement< StagedParams, Params, Cols >::stagedParams( const std::int32_t index )
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline StagedParams& StagedStatement< StagedParams, Params, Cols, StagingIndex >::stagedParams( const StagingIndex index )
 {
     return insertIntoStagingTable_.params()[ index ].second;
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline Params& StagedStatement< StagedParams, Params, Cols >::params()
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline Params& StagedStatement< StagedParams, Params, Cols, StagingIndex >::params()
 {
     return stmt_.params();
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline const Cols& StagedStatement< StagedParams, Params, Cols >::cols() const
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline const Cols& StagedStatement< StagedParams, Params, Cols, StagingIndex >::cols() const
 {
     return stmt_.cols();
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline void StagedStatement< StagedParams, Params, Cols >::exec()
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline void StagedStatement< StagedParams, Params, Cols, StagingIndex >::exec()
 {
-    auto& stagedParams = insertIntoStagingTable_.params();
-
-    for ( std::size_t index = 0; index < stagedParams.size(); ++index )
-    {
-        stagedParams[ index ].first = index;
-    }
-
     deleteFromStagingTable_.exec();
     insertIntoStagingTable_.exec();
 
     stmt_.exec();
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline bool StagedStatement< StagedParams, Params, Cols >::fetch()
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
+inline bool StagedStatement< StagedParams, Params, Cols, StagingIndex >::fetch()
 {
     return stmt_.fetch();
 }

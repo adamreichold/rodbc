@@ -29,16 +29,16 @@ namespace rodbc
 /**
  * @brief The StagedStatement class template
  */
-template< typename StagedParams, typename Params, typename Cols >
+template< typename StagedParams, typename Params, typename Cols, typename StagingIndex = std::int32_t >
 class StagedStatement
 {
 public:
-    using StagingColumns = typename CreateTable< std::pair< std::int32_t, StagedParams >, 0 >::ColumnNames;
+    using StagingColumns = typename CreateTable< std::pair< StagingIndex, StagedParams >, 0 >::ColumnNames;
 
     StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt );
 
-    void resizeStagedParams( const std::int32_t size );
-    StagedParams& stagedParams( const std::int32_t index );
+    void resizeStagedParams( const StagingIndex size );
+    StagedParams& stagedParams( const StagingIndex index );
 
     Params& params();
     const Cols& cols() const;
@@ -48,9 +48,9 @@ public:
     bool fetch();
 
 private:
-    CreateTable< std::pair< std::int32_t, StagedParams >, 0 > createStagingTable_;
+    CreateTable< std::pair< StagingIndex, StagedParams >, 0 > createStagingTable_;
     TypedStatement< std::tuple<>, std::tuple<> > deleteFromStagingTable_;
-    TypedStatement< std::vector< std::pair< std::int32_t, StagedParams > >, std::tuple<> > insertIntoStagingTable_;
+    TypedStatement< std::vector< std::pair< StagingIndex, StagedParams > >, std::tuple<> > insertIntoStagingTable_;
     TypedStatement< Params, Cols > stmt_;
 };
 

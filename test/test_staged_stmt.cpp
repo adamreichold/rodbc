@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE( canSelectByJoiningStagingTable )
         stmt.exec();
     }
 
-    rodbc::StagedStatement< std::tuple< int, int >, std::tuple<>, std::tuple< std::int32_t, int > > selectStmt{
+    rodbc::StagedStatement< std::tuple< int, int >, std::tuple<>, std::tuple< std::int32_t, int >, std::int16_t > selectStmt{
         conn, "stg_tbl", { "stg_idx", "x", "y" },
         "SELECT stg_idx, c FROM tbl, stg_tbl WHERE a = x AND b = y ORDER BY stg_idx"
     };
