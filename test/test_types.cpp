@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE( canDetectConstraintViolation )
         rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
     };
 
-    rodbc::Statement stmt{ conn, "INSERT INTO tbl (col) VALUES (?);" };
+    rodbc::Statement stmt{ conn, "INSERT INTO tbl (col) VALUES (?)" };
 
     const int n = 1;
     stmt.bindParam( n );

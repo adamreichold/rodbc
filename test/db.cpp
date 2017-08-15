@@ -41,10 +41,10 @@ struct Statements
     Statements( rodbc::Connection& conn )
     : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
-    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
-    , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
-    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
-    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?;", 128 }
+    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
+    , selectAllFoo{ conn, "SELECT x, y, z FROM foo" }
+    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?)" }
+    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?", 128 }
     {
     }
 };
@@ -161,10 +161,10 @@ struct Statements
     Statements( rodbc::Connection& conn )
     : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
-    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?);" }
-    , selectAllFoo{ conn, "SELECT x, y, z FROM foo;" }
-    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?);" }
-    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?;", 128 }
+    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
+    , selectAllFoo{ conn, "SELECT x, y, z FROM foo" }
+    , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?)" }
+    , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?", 128 }
     {
     }
 };

@@ -51,35 +51,35 @@ BOOST_AUTO_TEST_CASE( canSelectByJoiningStagingTable )
         stmt.exec();
     }
 
-    rodbc::StagedStatement< std::tuple< int, int >, std::tuple<>, std::tuple< std::int32_t, int > > stagedSelect{
+    rodbc::StagedStatement< std::tuple< int, int >, std::tuple<>, std::tuple< std::int32_t, int > > selectStmt{
         conn, "stg_tbl", { "stg_idx", "x", "y" },
-        "SELECT stg_idx, c FROM tbl, stg_tbl WHERE a = x AND b = y ORDER BY stg_idx;"
+        "SELECT stg_idx, c FROM tbl, stg_tbl WHERE a = x AND b = y ORDER BY stg_idx"
     };
 
-    stagedSelect.resizeStagedParams( 32 );
+    selectStmt.resizeStagedParams( 32 );
 
     for ( int index = 0; index < 32; ++index )
     {
-        auto& params = stagedSelect.stagedParams( index );
+        auto& params = selectStmt.stagedParams( index );
 
         std::get< 0 >( params ) = 4 * index;
         std::get< 1 >( params ) = 4 * index * 4 * index;
     }
 
-    stagedSelect.exec();
-    BOOST_CHECK_NO_THROW( stagedSelect.exec() );
+    BOOST_CHECK_NO_THROW( selectStmt.exec() );
 
     for ( int index = 0; index < 32; ++index )
     {
-        BOOST_CHECK( stagedSelect.fetch() );
+        auto& stmt = selectStmt;
+        const auto& cols = stmt.cols();
 
-        const auto& cols = stagedSelect.cols();
+        BOOST_CHECK( stmt.fetch() );
 
         BOOST_CHECK_EQUAL( index, std::get< 0 >( cols ) );
         BOOST_CHECK_EQUAL( 4 * index * 4 * index * 4 * index, std::get< 1 >( cols ) );
     }
 
-    BOOST_CHECK( !stagedSelect.fetch() );
+    BOOST_CHECK( !selectStmt.fetch() );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
