@@ -45,12 +45,11 @@ BOOST_FUSION_DEFINE_STRUCT(
 namespace foobar
 {
 
-struct Statements;
-
-struct Database : private rodbc::Database< Statements >
+struct Database : rodbc::Database< Database >
 {
     Database( const char* const connStr );
 
+    struct Statements;
     struct Stats;
 
     struct Transaction : BoundTransaction
@@ -59,9 +58,6 @@ struct Database : private rodbc::Database< Statements >
         ~Transaction();
 
         void commit();
-
-    private:
-        Stats& stats_;
     };
 
     struct InsertFoo : BoundStatement
@@ -69,6 +65,7 @@ struct Database : private rodbc::Database< Statements >
         Foo& foo;
 
         InsertFoo( Database& database );
+        ~InsertFoo();
 
         void exec();
     };
@@ -78,6 +75,7 @@ struct Database : private rodbc::Database< Statements >
         const Foo& foo;
 
         SelectAllFoo( Database& database );
+        ~SelectAllFoo();
 
         void exec();
         bool fetch();
@@ -88,6 +86,7 @@ struct Database : private rodbc::Database< Statements >
         std::vector< Bar >& bar;
 
         InsertBar( Database& database );
+        ~InsertBar();
 
         void exec();
     };
@@ -98,6 +97,7 @@ struct Database : private rodbc::Database< Statements >
         const std::vector< Bar >& bar;
 
         SelectBarByA( Database& database );
+        ~SelectBarByA();
 
         void exec();
         bool fetch();
@@ -106,9 +106,15 @@ struct Database : private rodbc::Database< Statements >
 public:
     struct Stats
     {
+        std::atomic_size_t sessions;
+        std::atomic_int activeSessions;
+
         std::atomic_size_t transactions;
         std::atomic_size_t committedTransactions;
         std::atomic_int activeTransactions;
+
+        std::atomic_size_t statements;
+        std::atomic_int activeStatements;
 
         std::atomic_size_t insertFoo;
         std::atomic_size_t selectAllFoo;
@@ -156,12 +162,12 @@ struct Database
     virtual std::vector< Bar > selectBarByA( const float a ) = 0;
 };
 
-struct Statements;
-
-struct DatabaseImpl final : Database, private rodbc::Database< Statements >
+struct DatabaseImpl final : Database, rodbc::Database< DatabaseImpl >
 {
     DatabaseImpl( const char* const connStr );
     ~DatabaseImpl();
+
+    struct Statements;
 
     std::unique_ptr< Transaction > startTransaction() override;
 

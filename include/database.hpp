@@ -32,7 +32,7 @@ namespace rodbc
 /**
  * @brief The Database class template
  */
-template< typename Statements >
+template< typename Database_ >
 class Database : private boost::noncopyable
 {
 public:
@@ -42,27 +42,26 @@ protected:
     class BoundTransaction : private boost::noncopyable
     {
     protected:
-        BoundTransaction( Database& database );
+        BoundTransaction( Database_& database );
 
         void doCommit();
 
-    private:
-        Database& database_;
-        Transaction transaction_;
+        Database_& database;
+        Transaction transaction;
     };
 
     class BoundStatement : private boost::noncopyable
     {
     protected:
-        BoundStatement( Database& database );
-
-        Database& database_;
-        Statements& stmts_;
+        BoundStatement( Database_& database );
 
         template< typename Statement >
         void doExec( Statement& stmt );
         template< typename Statement >
         bool doFetch( Statement& stmt );
+
+        Database_& database;
+        typename Database_::Statements& stmts;
     };
 
     template< typename Action >
@@ -77,10 +76,10 @@ private:
 
     struct Session
     {
-        Session( Connection&& conn );
+        Session( Database_& db, Connection&& conn );
 
         Connection conn;
-        Statements stmts;
+        typename Database_::Statements stmts;
     };
 
     boost::thread_specific_ptr< Session > session_;

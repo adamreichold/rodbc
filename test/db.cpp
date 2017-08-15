@@ -27,8 +27,10 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 namespace foobar
 {
 
-struct Statements
+struct Database::Statements
 {
+    Database::Stats& stats;
+
     rodbc::CreateTable< Foo > createFoo;
     rodbc::CreateTable< Bar > createBar;
 
@@ -38,99 +40,134 @@ struct Statements
     rodbc::TypedStatement< std::vector< Bar >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< Bar > > selectBarByA;
 
-    Statements( rodbc::Connection& conn )
-    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    Statements( Database& database, rodbc::Connection& conn )
+    : stats{ database.stats_ }
+    , createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
     , selectAllFoo{ conn, "SELECT x, y, z FROM foo" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?)" }
     , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?", 128 }
     {
+        stats.sessions++;
+        stats.activeSessions++;
+    }
+
+    ~Statements()
+    {
+        stats.activeSessions--;
     }
 };
 
 Database::Database( const char* const connStr )
-: rodbc::Database< Statements >{ connStr }
+: rodbc::Database< Database >{ connStr }
 {
 }
 
 Database::Transaction::Transaction( Database& database )
 : BoundTransaction{ database }
-, stats_{ database.stats_ }
 {
-    stats_.transactions++;
-    stats_.activeTransactions++;
+    database.stats_.transactions++;
+    database.stats_.activeTransactions++;
 }
 
 Database::Transaction::~Transaction()
 {
-    stats_.activeTransactions--;
+    database.stats_.activeTransactions--;
 }
 
 void Database::Transaction::commit()
 {
     doCommit();
 
-    stats_.committedTransactions++;
+    database.stats_.committedTransactions++;
 }
 
 Database::InsertFoo::InsertFoo( Database& database )
 : BoundStatement{ database }
-, foo{ stmts_.insertFoo.params() }
+, foo{ stmts.insertFoo.params() }
 {
+    database.stats_.statements++;
+    database.stats_.activeStatements++;
     database.stats_.insertFoo++;
+}
+
+Database::InsertFoo::~InsertFoo()
+{
+    database.stats_.activeStatements--;
 }
 
 void Database::InsertFoo::exec()
 {
-    doExec( stmts_.insertFoo );
+    doExec( stmts.insertFoo );
 }
 
 Database::SelectAllFoo::SelectAllFoo( Database& database )
 : BoundStatement{ database }
-, foo{ stmts_.selectAllFoo.cols() }
+, foo{ stmts.selectAllFoo.cols() }
 {
+    database.stats_.statements++;
+    database.stats_.activeStatements++;
     database.stats_.selectAllFoo++;
+}
+
+Database::SelectAllFoo::~SelectAllFoo()
+{
+    database.stats_.activeStatements--;
 }
 
 void Database::SelectAllFoo::exec()
 {
-    doExec( stmts_.selectAllFoo );
+    doExec( stmts.selectAllFoo );
 }
 
 bool Database::SelectAllFoo::fetch()
 {
-    return doFetch( stmts_.selectAllFoo );
+    return doFetch( stmts.selectAllFoo );
 }
 
 Database::InsertBar::InsertBar( Database& database )
 : BoundStatement{ database }
-, bar{ stmts_.insertBar.params() }
+, bar{ stmts.insertBar.params() }
 {
+    database.stats_.statements++;
+    database.stats_.activeStatements++;
     database.stats_.insertBar++;
+}
+
+Database::InsertBar::~InsertBar()
+{
+    database.stats_.activeStatements--;
 }
 
 void Database::InsertBar::exec()
 {
-    doExec( stmts_.insertBar );
+    doExec( stmts.insertBar );
 }
 
 Database::SelectBarByA::SelectBarByA( Database& database )
 : BoundStatement{ database }
-, a{ std::get< 0 >( stmts_.selectBarByA.params() ) }
-, bar{ stmts_.selectBarByA.cols() }
+, a{ std::get< 0 >( stmts.selectBarByA.params() ) }
+, bar{ stmts.selectBarByA.cols() }
 {
+    database.stats_.statements++;
+    database.stats_.activeStatements++;
     database.stats_.selectBarByA++;
+}
+
+Database::SelectBarByA::~SelectBarByA()
+{
+    database.stats_.activeStatements--;
 }
 
 void Database::SelectBarByA::exec()
 {
-    doExec( stmts_.selectBarByA );
+    doExec( stmts.selectBarByA );
 }
 
 bool Database::SelectBarByA::fetch()
 {
-    return doFetch( stmts_.selectBarByA );
+    return doFetch( stmts.selectBarByA );
 }
 
 const Database::Stats& Database::stats() const noexcept
@@ -147,7 +184,7 @@ Transaction::~Transaction() = default;
 
 Database::~Database() = default;
 
-struct Statements
+struct DatabaseImpl::Statements
 {
     rodbc::CreateTable< std::tuple< int, int, int > > createFoo;
     rodbc::CreateTable< std::tuple< float, float, float > > createBar;
@@ -158,7 +195,7 @@ struct Statements
     rodbc::TypedStatement< std::vector< std::tuple< float, float, float > >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
-    Statements( rodbc::Connection& conn )
+    Statements( DatabaseImpl&, rodbc::Connection& conn )
     : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
@@ -183,7 +220,7 @@ struct DatabaseImpl::TransactionImpl final : Transaction, private BoundTransacti
 };
 
 DatabaseImpl::DatabaseImpl( const char* const connStr )
-: rodbc::Database< Statements >( connStr )
+: rodbc::Database< DatabaseImpl >( connStr )
 {
 }
 

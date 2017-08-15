@@ -27,56 +27,56 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 namespace rodbc
 {
 
-template< typename Statements >
-inline Database< Statements >::Database( std::string connStr )
+template< typename Database_ >
+inline Database< Database_ >::Database( std::string connStr )
 : connStr_{ std::move( connStr ) }
 {
 }
 
-template< typename Statements >
-inline Database< Statements >::BoundTransaction::BoundTransaction( Database& database )
-: database_{ database }
-, transaction_{ database_.openSession().conn }
+template< typename Database_ >
+inline Database< Database_ >::BoundTransaction::BoundTransaction( Database_& database )
+: database{ database }
+, transaction{ database.openSession().conn }
 {
 }
 
-template< typename Statements >
-inline void Database< Statements >::BoundTransaction::doCommit()
+template< typename Database_ >
+inline void Database< Database_ >::BoundTransaction::doCommit()
 {
-    database_.closeDeadSession( [&]() { transaction_.commit(); } );
+    database.closeDeadSession( [&]() { transaction.commit(); } );
 }
 
-template< typename Statements >
-inline Database< Statements >::BoundStatement::BoundStatement( Database& database )
-: database_{ database }
-, stmts_{ database_.openSession().stmts }
+template< typename Database_ >
+inline Database< Database_ >::BoundStatement::BoundStatement( Database_& database )
+: database{ database }
+, stmts{ database.openSession().stmts }
 {
 }
 
-template< typename Statements >
+template< typename Database_ >
 template< typename Statement >
-inline void Database< Statements >::BoundStatement::doExec( Statement& stmt )
+inline void Database< Database_ >::BoundStatement::doExec( Statement& stmt )
 {
-    database_.closeDeadSession( [&]() { stmt.exec(); } );
+    database.closeDeadSession( [&]() { stmt.exec(); } );
 }
 
-template< typename Statements >
+template< typename Database_ >
 template< typename Statement >
-inline bool Database< Statements >::BoundStatement::doFetch( Statement& stmt )
+inline bool Database< Database_ >::BoundStatement::doFetch( Statement& stmt )
 {
-    return database_.closeDeadSession( [&]() { return stmt.fetch(); } );
+    return database.closeDeadSession( [&]() { return stmt.fetch(); } );
 }
 
-template< typename Statements >
+template< typename Database_ >
 template< typename Action >
-inline void Database< Statements >::withStatements( Action action )
+inline void Database< Database_ >::withStatements( Action action )
 {
     closeDeadSession( [&]() { action( openSession().stmts ); } );
 }
 
 
-template< typename Statements >
-inline Connection Database< Statements >::makeConnection()
+template< typename Database_ >
+inline Connection Database< Database_ >::makeConnection()
 {
     boost::lock_guard< boost::mutex > lock{ mutex_ };
 
@@ -84,30 +84,30 @@ inline Connection Database< Statements >::makeConnection()
 }
 
 
-template< typename Statements >
-inline Database< Statements >::Session::Session( Connection&& conn )
+template< typename Database_ >
+inline Database< Database_ >::Session::Session( Database_& db, Connection&& conn )
 : conn{ std::move( conn ) }
-, stmts{ this->conn }
+, stmts{ db, this->conn }
 {
 }
 
-template< typename Statements >
-inline typename Database< Statements >::Session& Database< Statements >::openSession()
+template< typename Database_ >
+inline typename Database< Database_ >::Session& Database< Database_ >::openSession()
 {
     auto* session = session_.get();
 
     if ( !session )
     {
-        session = new Session{ makeConnection() };
+        session = new Session{ static_cast< Database_& >( *this ), makeConnection() };
         session_.reset( session );
     }
 
     return *session;
 }
 
-template< typename Statements >
+template< typename Database_ >
 template< typename Action >
-inline auto Database< Statements >::closeDeadSession( Action action ) -> decltype ( action() )
+inline auto Database< Database_ >::closeDeadSession( Action action ) -> decltype ( action() )
 {
     try
     {
