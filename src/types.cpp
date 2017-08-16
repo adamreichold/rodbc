@@ -62,7 +62,7 @@ boost::posix_time::ptime to_ptime( const Timestamp& ts )
 const boost::format& format( const Timestamp& ts )
 {
     static thread_local boost::format rfc3339{
-            "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ"
+        "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ"
     };
 
     return rfc3339 % ts.year % ts.month % ts.day % ts.hour % ts.minute % ts.second % ts.fraction;

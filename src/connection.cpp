@@ -157,7 +157,7 @@ IsolationLevel Connection::isolationLevel() const
     }
 }
 
-void Connection::setIsolationLevel(const IsolationLevel isolationLevel)
+void Connection::setIsolationLevel( const IsolationLevel isolationLevel )
 {
     SQLULEN txnIsolation;
 

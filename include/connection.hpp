@@ -44,6 +44,9 @@ private:
     friend class Connection;
 };
 
+/**
+ * @brief The DBMS enum
+ */
 enum class DBMS
 {
     Other,
@@ -52,6 +55,9 @@ enum class DBMS
     MySQL
 };
 
+/**
+ * @brief The IsolationLevel enum
+ */
 enum class IsolationLevel
 {
     Other,
