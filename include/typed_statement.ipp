@@ -124,16 +124,22 @@ inline void TypedStatement< std::vector< Params >, std::tuple<> >::exec()
 template< typename Params >
 inline void TypedStatement< std::vector< Params >, std::tuple<> >::bindParams()
 {
-    const auto binding = std::make_pair( params_.data(), params_.size() );
-    if ( binding_ == binding )
+    auto* const data = params_.data();
+    const auto size = params_.size();
+
+    if ( data_ != data )
     {
-        return;
+        detail::bindParams( stmt_, *data );
+
+        data_ = data;
     }
 
-    stmt_.bindParamArray( params_ );
-    detail::bindParams( stmt_, params_.front() );
+    if ( size_ != size )
+    {
+        stmt_.bindParamArray( params_ );
 
-    binding_ = binding;
+        size_ = size;
+    }
 }
 
 template< typename Params, typename Cols >
@@ -142,6 +148,30 @@ inline TypedStatement< Params, std::vector< Cols > >::TypedStatement( Connection
 {
     detail::bindParams( stmt_, params_ );
 
+    cols_.reserve( fetchSize );
+}
+
+template< typename Params, typename Cols >
+inline Params& TypedStatement< Params, std::vector< Cols > >::params()
+{
+    return params_;
+}
+
+template< typename Params, typename Cols >
+const std::vector< Cols >& TypedStatement< Params, std::vector< Cols > >::cols() const
+{
+    return cols_;
+}
+
+template< typename Params, typename Cols >
+inline std::size_t TypedStatement< Params, std::vector< Cols > >::fetchSize() const
+{
+    return cols_.capacity();
+}
+
+template< typename Params, typename Cols >
+inline void TypedStatement< Params, std::vector< Cols > >::setFetchSize( const std::size_t fetchSize )
+{
     cols_.reserve( fetchSize );
 }
 
@@ -171,28 +201,22 @@ inline bool TypedStatement< Params, std::vector< Cols > >::fetch()
 template< typename Params, typename Cols >
 inline void TypedStatement< Params, std::vector< Cols > >::bindCols()
 {
-    const auto binding = std::make_pair( cols_.data(), cols_.size() );
-    if ( binding_ == binding )
+    auto* const data = cols_.data();
+    const auto size = cols_.size();
+
+    if ( data_ != data )
     {
-        return;
+        detail::bindCols( stmt_, *data );
+
+        data_ = data;
     }
 
-    stmt_.bindColArray( cols_, rowsFetched_ );
-    detail::bindCols( stmt_, cols_.front() );
+    if ( size_ != size )
+    {
+        stmt_.bindColArray( cols_, rowsFetched_ );
 
-    binding_ = binding;
-}
-
-template< typename Params, typename Cols >
-inline Params& TypedStatement< Params, std::vector< Cols > >::params()
-{
-    return params_;
-}
-
-template< typename Params, typename Cols >
-const std::vector< Cols >& TypedStatement< Params, std::vector< Cols > >::cols() const
-{
-    return cols_;
+        size_ = size;
+    }
 }
 
 }

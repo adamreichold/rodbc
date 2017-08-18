@@ -62,7 +62,8 @@ private:
     Statement stmt_;
 
     std::vector< Params > params_;
-    std::pair< Params*, std::size_t > binding_{ nullptr, 0 };
+    Params* data_{ nullptr };
+    std::size_t size_{ 0 };
 
     void bindParams();
 };
@@ -76,6 +77,9 @@ public:
     Params& params();
     const std::vector< Cols >& cols() const;
 
+    std::size_t fetchSize() const;
+    void setFetchSize( const std::size_t fetchSize );
+
 public:
     void exec();
     bool fetch();
@@ -85,7 +89,8 @@ private:
     Params params_;
 
     std::vector< Cols > cols_;
-    std::pair< Cols*, std::size_t > binding_{ nullptr, 0 };
+    Cols* data_{ nullptr };
+    std::size_t size_{ 0 };
 
     long rowsFetched_;
 
