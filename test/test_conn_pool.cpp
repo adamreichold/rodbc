@@ -23,9 +23,12 @@ BOOST_AUTO_TEST_SUITE( threadLocalConnPool )
 
 BOOST_AUTO_TEST_CASE( canConnect )
 {
-    rodbc::ThreadLocalConnectionPool< Statements > pool{ RODBC_TEST_CONN_STR };
+    using Pool = rodbc::ThreadLocalConnectionPool< Statements >;
 
-    pool( []( rodbc::Connection& conn, Statements& stmts )
+    Pool pool{ RODBC_TEST_CONN_STR };
+    Pool::Lease lease{ pool };
+
+    lease( []( rodbc::Connection& conn, Statements& stmts )
     {
         rodbc::Transaction trans{ conn };
 
@@ -43,9 +46,12 @@ BOOST_AUTO_TEST_SUITE( fixedSizeConnPool )
 
 BOOST_AUTO_TEST_CASE( canConnect )
 {
-    rodbc::FixedSizeConnectionPool< Statements > pool{ RODBC_TEST_CONN_STR, 1ul };
+    using Pool = rodbc::FixedSizeConnectionPool< Statements >;
 
-    pool( []( rodbc::Connection& conn, Statements& stmts )
+    Pool pool{ RODBC_TEST_CONN_STR, 1ul };
+    Pool::Lease lease{ pool };
+
+    lease( []( rodbc::Connection& conn, Statements& stmts )
     {
         rodbc::Transaction trans{ conn };
 

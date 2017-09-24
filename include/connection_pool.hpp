@@ -3,11 +3,7 @@
 #include "connection.hpp"
 
 #include <boost/noncopyable.hpp>
-#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/tss.hpp>
-
-#include <vector>
 
 namespace rodbc
 {
@@ -23,10 +19,10 @@ protected:
     Connection makeConnection();
 
 private:
+    const std::string connStr_;
+
     boost::mutex env_lock_;
     Environment env_;
-
-    const std::string connStr_;
 };
 
 template< typename Statements >
@@ -42,8 +38,17 @@ public:
     template< typename... Args >
     ConnectionPool( std::string connStr, Args&&... args );
 
-    template< typename Action >
-    auto operator() ( Action action ) -> typename std::result_of< Action(Connection&, Statements&) >::type;
+    class Lease : private ConnectionPoolImpl::LeaseImpl
+    {
+    public:
+        Lease( ConnectionPool& pool );
+
+        template< typename Action >
+        auto operator() ( Action action ) -> typename std::result_of< Action( Connection&, Statements& ) >::type;
+
+    private:
+        ConnectionPool& pool_;
+    };
 };
 
 }
