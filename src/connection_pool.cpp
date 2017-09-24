@@ -1,5 +1,7 @@
 #include "connection_pool.ipp"
 
+#include <boost/thread/lock_types.hpp>
+
 namespace rodbc
 {
 namespace detail
@@ -19,6 +21,63 @@ Connection ConnectionPoolBase::makeConnection()
     return { env_, connStr_.c_str() };
 }
 
+ConnectionPoolHolderBase::~ConnectionPoolHolderBase() = default;
+
+ThreadLocalConnectionPoolImpl::ThreadLocalConnectionPoolImpl() = default;
+
+ThreadLocalConnectionPoolImpl::LeaseImpl::LeaseImpl( ThreadLocalConnectionPoolImpl& impl )
+: impl_{ impl }
+{
 }
 
+ConnectionPoolHolderBase* ThreadLocalConnectionPoolImpl::LeaseImpl::get() const
+{
+    return impl_.holder_.get();
+}
+
+void ThreadLocalConnectionPoolImpl::LeaseImpl::reset( ConnectionPoolHolderBase* const holder )
+{
+    impl_.holder_.reset( holder );
+}
+
+FixedSizeConnectionPoolImpl::FixedSizeConnectionPoolImpl( const std::size_t size )
+: holder_{ size }
+{
+}
+
+FixedSizeConnectionPoolImpl::LeaseImpl::LeaseImpl( FixedSizeConnectionPoolImpl& impl )
+: impl_{ impl }
+{
+    boost::unique_lock< boost::mutex > lock{ impl_.holder_lock_ };
+
+    while ( impl_.holder_.empty() )
+    {
+        impl_.holder_condition_.wait( lock );
+    }
+
+    holder_ = std::move( impl_.holder_.back() );
+
+    impl_.holder_.pop_back();
+}
+
+FixedSizeConnectionPoolImpl::LeaseImpl::~LeaseImpl()
+{
+    boost::unique_lock< boost::mutex > lock{ impl_.holder_lock_ };
+
+    impl_.holder_.push_back( std::move( holder_ ) );
+
+    impl_.holder_condition_.notify_one();
+}
+
+ConnectionPoolHolderBase* FixedSizeConnectionPoolImpl::LeaseImpl::get() const
+{
+    return holder_.get();
+}
+
+void FixedSizeConnectionPoolImpl::LeaseImpl::reset( ConnectionPoolHolderBase* const holder )
+{
+    holder_.reset( holder );
+}
+
+}
 }

@@ -3,21 +3,15 @@
 
 #include "types.hpp"
 
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/lock_types.hpp>
-#include <boost/thread/tss.hpp>
-
-#include <vector>
-
 namespace rodbc
 {
 namespace detail
 {
 
 template< typename Statements >
-struct ConnectionPoolData
+struct ConnectionPoolHolder : public ConnectionPoolHolderBase
 {
-    ConnectionPoolData( Connection&& conn )
+    ConnectionPoolHolder( Connection&& conn )
     : conn{ std::move( conn ) }
     , stmts{ this->conn }
     {
@@ -26,99 +20,6 @@ struct ConnectionPoolData
     Connection conn;
     Statements stmts;
 };
-
-template< typename Statements >
-class ThreadLocalConnectionPoolImpl
-{
-private:
-    using Impl = ThreadLocalConnectionPoolImpl;
-    using Data = ConnectionPoolData< Statements >;
-
-    boost::thread_specific_ptr< Data > data_;
-
-protected:
-    class LeaseImpl
-    {
-    private:
-        Impl& impl_;
-
-    protected:
-        LeaseImpl( Impl& impl )
-        : impl_{ impl }
-        {
-        }
-
-        Data* get() const
-        {
-            return impl_.data_.get();
-        }
-
-        void reset( Data* const data = nullptr )
-        {
-            impl_.data_.reset( data );
-        }
-    };
-};
-
-template< typename Statements >
-class FixedSizeConnectionPoolImpl
-{
-private:
-    using Impl = FixedSizeConnectionPoolImpl;
-    using Data = ConnectionPoolData< Statements >;
-
-    boost::mutex data_lock_;
-    boost::condition_variable data_condition_;
-    std::vector< std::unique_ptr< Data > > data_;
-
-protected:
-    class LeaseImpl
-    {
-    private:
-        Impl& impl_;
-        std::unique_ptr< Data > data_;
-
-    protected:
-        LeaseImpl( Impl& impl )
-        : impl_{ impl }
-        {
-            boost::unique_lock< boost::mutex > lock{ impl_.data_lock_ };
-
-            while ( impl_.data_.empty() )
-            {
-                impl_.data_condition_.wait( lock );
-            }
-
-            data_ = std::move( impl_.data_.back() );
-            impl_.data_.pop_back();
-        }
-
-        ~LeaseImpl()
-        {
-            boost::unique_lock< boost::mutex > lock{ impl_.data_lock_ };
-
-            impl_.data_.push_back( std::move( data_ ) );
-
-            impl_.data_condition_.notify_one();
-        }
-
-        Data* get()
-        {
-            return data_.get();
-        }
-
-        void reset( Data* const data = nullptr )
-        {
-            data_.reset( data );
-        }
-    };
-
-    FixedSizeConnectionPoolImpl( const std::size_t size )
-    : data_{ size }
-    {
-    }
-};
-
 
 template< typename Statements, typename ConnectionPoolImpl >
 template< typename... Args >
@@ -140,13 +41,13 @@ template< typename Action >
 inline typename std::result_of< Action( Connection&, Statements& ) >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
 {
     using Impl = typename ConnectionPoolImpl::LeaseImpl;
-    using Data = ConnectionPoolData< Statements >;
+    using Holder = ConnectionPoolHolder< Statements >;
 
-    auto* data = Impl::get();
+    auto* data = static_cast< Holder* >( Impl::get() );
 
     if ( !data )
     {
-        data = new Data{ pool_.makeConnection() };
+        data = new Holder{ pool_.makeConnection() };
 
         Impl::reset( data );
     }
@@ -170,7 +71,7 @@ template< typename Statements, typename ConnectionPoolImpl >
 template< typename Action >
 inline typename std::result_of< Action( Connection& ) >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
 {
-    return operator() ( [&]( Connection& conn, Statements& )
+    return operator() ( [ &action ]( Connection& conn, Statements& )
     {
         return action( conn );
     } );
@@ -180,12 +81,21 @@ template< typename Statements, typename ConnectionPoolImpl >
 template< typename Action >
 inline typename std::result_of< Action( Statements& ) >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
 {
-    return operator() ( [&]( Connection&, Statements& stmts )
+    return operator() ( [ &action ]( Connection&, Statements& stmts )
     {
         return action( stmts );
     } );
 }
 
+template< typename Statements, typename ConnectionPoolImpl >
+template< typename Action >
+inline typename std::result_of< Action() >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
+{
+    return operator() ( [ &action ]( Connection&, Statements& )
+    {
+        return action();
+    } );
 }
 
+}
 }
