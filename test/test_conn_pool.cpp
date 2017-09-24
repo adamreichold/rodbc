@@ -17,16 +17,10 @@ struct Statements
     }
 };
 
-BOOST_AUTO_TEST_SUITE( connPool )
-
-BOOST_AUTO_TEST_SUITE( threadLocalConnPool )
-
-BOOST_AUTO_TEST_CASE( canConnect )
+template< typename Pool >
+void takeLeaseAndSelect( Pool& pool )
 {
-    using Pool = rodbc::ThreadLocalConnectionPool< Statements >;
-
-    Pool pool{ RODBC_TEST_CONN_STR };
-    Pool::Lease lease{ pool };
+    typename Pool::Lease lease{ pool };
 
     lease( []( rodbc::Connection& conn, Statements& stmts )
     {
@@ -40,27 +34,61 @@ BOOST_AUTO_TEST_CASE( canConnect )
     } );
 }
 
-BOOST_AUTO_TEST_SUITE_END()
-
-BOOST_AUTO_TEST_SUITE( fixedSizeConnPool )
-
-BOOST_AUTO_TEST_CASE( canConnect )
+template< typename Pool >
+void takeLeaseAndSelectButSplitUsage( Pool& pool )
 {
-    using Pool = rodbc::FixedSizeConnectionPool< Statements >;
+    typename Pool::Lease lease{ pool };
 
-    Pool pool{ RODBC_TEST_CONN_STR, 1ul };
-    Pool::Lease lease{ pool };
-
-    lease( []( rodbc::Connection& conn, Statements& stmts )
+    auto trans = lease( []( rodbc::Connection& conn )
     {
-        rodbc::Transaction trans{ conn };
+        return rodbc::Transaction{ conn };
+    } );
 
+    lease( []( Statements& stmts )
+    {
         auto& stmt = stmts.selectStmt;
         BOOST_CHECK_NO_THROW( stmt.exec() );
         BOOST_CHECK( !stmt.fetch() );
 
-        trans.commit();
     } );
+
+    trans.commit();
+}
+
+BOOST_AUTO_TEST_SUITE( connPool )
+
+BOOST_AUTO_TEST_SUITE( threadLocalConnPool )
+
+BOOST_AUTO_TEST_CASE( canConnectAndSelect )
+{
+    rodbc::ThreadLocalConnectionPool< Statements > pool{ RODBC_TEST_CONN_STR };
+
+    takeLeaseAndSelect( pool );
+}
+
+BOOST_AUTO_TEST_CASE( canSplitLeaseUsage )
+{
+    rodbc::ThreadLocalConnectionPool< Statements > pool{ RODBC_TEST_CONN_STR };
+
+    takeLeaseAndSelectButSplitUsage( pool );
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE( fixedSizeConnPool )
+
+BOOST_AUTO_TEST_CASE( canConnectAndSelect )
+{
+    rodbc::FixedSizeConnectionPool< Statements > pool{ RODBC_TEST_CONN_STR, 1ul };
+
+    takeLeaseAndSelect( pool );
+}
+
+BOOST_AUTO_TEST_CASE( canSplitLeaseUsage )
+{
+    rodbc::FixedSizeConnectionPool< Statements > pool{ RODBC_TEST_CONN_STR, 1ul };
+
+    takeLeaseAndSelectButSplitUsage( pool );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

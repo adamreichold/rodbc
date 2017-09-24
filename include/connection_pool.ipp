@@ -137,7 +137,7 @@ inline ConnectionPool< Statements, ConnectionPoolImpl >::Lease::Lease( Connectio
 
 template< typename Statements, typename ConnectionPoolImpl >
 template< typename Action >
-inline auto ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action ) -> typename std::result_of< Action( Connection&, Statements& ) >::type
+inline typename std::result_of< Action( Connection&, Statements& ) >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
 {
     using Impl = typename ConnectionPoolImpl::LeaseImpl;
     using Data = ConnectionPoolData< Statements >;
@@ -164,6 +164,26 @@ inline auto ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() 
 
         throw;
     }
+}
+
+template< typename Statements, typename ConnectionPoolImpl >
+template< typename Action >
+inline typename std::result_of< Action( Connection& ) >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
+{
+    return operator() ( [&]( Connection& conn, Statements& )
+    {
+        return action( conn );
+    } );
+}
+
+template< typename Statements, typename ConnectionPoolImpl >
+template< typename Action >
+inline typename std::result_of< Action( Statements& ) >::type ConnectionPool< Statements, ConnectionPoolImpl >::Lease::operator() ( Action action )
+{
+    return operator() ( [&]( Connection&, Statements& stmts )
+    {
+        return action( stmts );
+    } );
 }
 
 }

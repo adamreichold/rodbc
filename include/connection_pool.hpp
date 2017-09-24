@@ -44,7 +44,13 @@ public:
         Lease( ConnectionPool& pool );
 
         template< typename Action >
-        auto operator() ( Action action ) -> typename std::result_of< Action( Connection&, Statements& ) >::type;
+        typename std::result_of< Action( Connection&, Statements& ) >::type operator() ( Action action );
+
+        template< typename Action >
+        typename std::result_of< Action( Connection& ) >::type operator() ( Action action );
+
+        template< typename Action >
+        typename std::result_of< Action( Statements& ) >::type operator() ( Action action );
 
     private:
         ConnectionPool& pool_;
