@@ -29,7 +29,7 @@ namespace detail
 {
 
 template< typename Statements >
-struct ConnectionPoolHolder final : public ConnectionPoolHolderBase
+struct ConnectionPoolHolder final : ConnectionPoolHolderBase
 {
     ConnectionPoolHolder( Connection&& conn )
     : conn{ std::move( conn ) }
@@ -80,7 +80,7 @@ inline typename std::result_of< Action( Connection&, Statements& ) >::type Conne
     {
         if ( data->conn.isDead() )
         {
-            Impl::reset();
+            Impl::reset( nullptr );
         }
 
         throw;

@@ -52,7 +52,10 @@ void takeLeaseAndSelectButSplitUsage( Pool& pool )
 
     } );
 
-    trans.commit();
+    lease( [ &trans ]()
+    {
+        trans.commit();
+    } );
 }
 
 BOOST_AUTO_TEST_SUITE( connPool )

@@ -21,7 +21,6 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include "database.hpp"
 
 #include "connection_pool.ipp"
-#include "types.hpp"
 
 #include <boost/thread/lock_guard.hpp>
 

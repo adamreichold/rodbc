@@ -45,6 +45,8 @@ ConnectionPoolHolderBase::~ConnectionPoolHolderBase() = default;
 
 ThreadLocalConnectionPoolImpl::ThreadLocalConnectionPoolImpl() = default;
 
+ThreadLocalConnectionPoolImpl::~ThreadLocalConnectionPoolImpl() = default;
+
 ThreadLocalConnectionPoolImpl::LeaseImpl::LeaseImpl( ThreadLocalConnectionPoolImpl& impl )
 : impl_{ impl }
 {
@@ -64,6 +66,8 @@ FixedSizeConnectionPoolImpl::FixedSizeConnectionPoolImpl( const std::size_t size
 : holder_{ size }
 {
 }
+
+FixedSizeConnectionPoolImpl::~FixedSizeConnectionPoolImpl() = default;
 
 FixedSizeConnectionPoolImpl::LeaseImpl::LeaseImpl( FixedSizeConnectionPoolImpl& impl )
 : impl_{ impl }

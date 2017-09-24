@@ -57,6 +57,7 @@ class ThreadLocalConnectionPoolImpl
 {
 protected:
     ThreadLocalConnectionPoolImpl();
+    ~ThreadLocalConnectionPoolImpl();
 
     class LeaseImpl
     {
@@ -64,7 +65,7 @@ protected:
         explicit LeaseImpl( ThreadLocalConnectionPoolImpl& impl );
 
         ConnectionPoolHolderBase* get() const;
-        void reset( ConnectionPoolHolderBase* const holder = nullptr );
+        void reset( ConnectionPoolHolderBase* const holder );
 
     private:
         ThreadLocalConnectionPoolImpl& impl_;
@@ -78,6 +79,7 @@ class FixedSizeConnectionPoolImpl
 {
 protected:
     explicit FixedSizeConnectionPoolImpl( const std::size_t size );
+    ~FixedSizeConnectionPoolImpl();
 
     class LeaseImpl
     {
@@ -86,7 +88,7 @@ protected:
         ~LeaseImpl();
 
         ConnectionPoolHolderBase* get() const;
-        void reset( ConnectionPoolHolderBase* const holder = nullptr );
+        void reset( ConnectionPoolHolderBase* const holder );
 
     private:
         FixedSizeConnectionPoolImpl& impl_;
