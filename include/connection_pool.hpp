@@ -2,7 +2,6 @@
 
 #include "connection.hpp"
 
-#include <boost/noncopyable.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/tss.hpp>
@@ -17,7 +16,7 @@ namespace detail
 class ConnectionPoolBase : private boost::noncopyable
 {
 protected:
-    ConnectionPoolBase( std::string&& connStr );
+    explicit ConnectionPoolBase( std::string connStr );
     ~ConnectionPoolBase();
 
     Connection makeConnection();
@@ -42,7 +41,7 @@ protected:
     class LeaseImpl
     {
     protected:
-        LeaseImpl( ThreadLocalConnectionPoolImpl& impl );
+        explicit LeaseImpl( ThreadLocalConnectionPoolImpl& impl );
 
         ConnectionPoolHolderBase* get() const;
         void reset( ConnectionPoolHolderBase* const holder = nullptr );
@@ -58,12 +57,12 @@ private:
 class FixedSizeConnectionPoolImpl
 {
 protected:
-    FixedSizeConnectionPoolImpl( const std::size_t size );
+    explicit FixedSizeConnectionPoolImpl( const std::size_t size );
 
     class LeaseImpl
     {
     protected:
-        LeaseImpl( FixedSizeConnectionPoolImpl& impl );
+        explicit LeaseImpl( FixedSizeConnectionPoolImpl& impl );
         ~LeaseImpl();
 
         ConnectionPoolHolderBase* get() const;
@@ -85,12 +84,12 @@ class ConnectionPool : private ConnectionPoolBase, private ConnectionPoolImpl
 {
 public:
     template< typename... Args >
-    ConnectionPool( std::string connStr, Args&&... args );
+    explicit ConnectionPool( const char* const connStr, Args&&... args );
 
     class Lease : private ConnectionPoolImpl::LeaseImpl
     {
     public:
-        Lease( ConnectionPool& pool );
+        explicit Lease( ConnectionPool& pool );
 
         template< typename Action >
         typename std::result_of< Action( Connection&, Statements& ) >::type operator() ( Action action );

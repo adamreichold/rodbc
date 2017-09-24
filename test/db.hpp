@@ -45,11 +45,12 @@ BOOST_FUSION_DEFINE_STRUCT(
 namespace foobar
 {
 
-struct Database : rodbc::Database< Database >
+struct Statements;
+
+struct Database : rodbc::Database< Database, Statements, rodbc::ThreadLocalConnectionPool< Statements > >
 {
     Database( const char* const connStr );
 
-    struct Statements;
     struct Stats;
 
     struct Transaction : BoundTransaction
@@ -64,7 +65,7 @@ struct Database : rodbc::Database< Database >
     {
         Foo& foo;
 
-        InsertFoo( Database& database );
+        InsertFoo( Transaction& transaction );
         ~InsertFoo();
 
         void exec();
@@ -74,7 +75,7 @@ struct Database : rodbc::Database< Database >
     {
         const Foo& foo;
 
-        SelectAllFoo( Database& database );
+        SelectAllFoo( Transaction& transaction );
         ~SelectAllFoo();
 
         void exec();
@@ -85,7 +86,7 @@ struct Database : rodbc::Database< Database >
     {
         std::vector< Bar >& bar;
 
-        InsertBar( Database& database );
+        InsertBar( Transaction& transaction );
         ~InsertBar();
 
         void exec();
@@ -96,7 +97,7 @@ struct Database : rodbc::Database< Database >
         float& a;
         const std::vector< Bar >& bar;
 
-        SelectBarByA( Database& database );
+        SelectBarByA( Transaction& transaction );
         ~SelectBarByA();
 
         void exec();
@@ -106,9 +107,6 @@ struct Database : rodbc::Database< Database >
 public:
     struct Stats
     {
-        std::atomic_size_t sessions;
-        std::atomic_int activeSessions;
-
         std::atomic_size_t transactions;
         std::atomic_size_t committedTransactions;
         std::atomic_int activeTransactions;
@@ -156,28 +154,31 @@ struct Database
 
     virtual std::unique_ptr< Transaction > startTransaction() = 0;
 
-    virtual void insertFoo( const Foo& foo ) = 0;
-    virtual std::vector< Foo > selectAllFoo() = 0;
-    virtual void insertBar( const std::vector< Bar >& bar ) = 0;
-    virtual std::vector< Bar > selectBarByA( const float a ) = 0;
+    virtual void insertFoo( Transaction& transaction, const Foo& foo ) = 0;
+    virtual std::vector< Foo > selectAllFoo( Transaction& transaction ) = 0;
+    virtual void insertBar( Transaction& transaction, const std::vector< Bar >& bar ) = 0;
+    virtual std::vector< Bar > selectBarByA( Transaction& transaction, const float a ) = 0;
 };
 
-struct DatabaseImpl final : Database, rodbc::Database< DatabaseImpl >
-{
-    DatabaseImpl( const char* const connStr );
-    ~DatabaseImpl();
+struct Statements;
 
-    struct Statements;
+struct DatabaseImpl final : Database, rodbc::Database< DatabaseImpl, Statements, rodbc::FixedSizeConnectionPool< Statements > >
+{
+    DatabaseImpl( const char* const connStr, const std::size_t connPoolSize );
+    ~DatabaseImpl();
 
     std::unique_ptr< Transaction > startTransaction() override;
 
-    void insertFoo( const Foo& foo ) override;
-    std::vector< Foo > selectAllFoo() override;
-    void insertBar( const std::vector< Bar >& bars ) override;
-    std::vector< Bar > selectBarByA( const float a ) override;
+    void insertFoo( Transaction& transaction, const Foo& foo ) override;
+    std::vector< Foo > selectAllFoo( Transaction& transaction ) override;
+    void insertBar( Transaction& transaction, const std::vector< Bar >& bars ) override;
+    std::vector< Bar > selectBarByA( Transaction& transaction, const float a ) override;
 
 private:
     struct TransactionImpl;
+
+    template< typename Action >
+    void withLease( Transaction& transaction, Action action );
 };
 
 }

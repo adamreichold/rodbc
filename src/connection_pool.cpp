@@ -7,7 +7,7 @@ namespace rodbc
 namespace detail
 {
 
-ConnectionPoolBase::ConnectionPoolBase( std::string&& connStr )
+ConnectionPoolBase::ConnectionPoolBase( std::string connStr )
 : connStr_{ std::move( connStr ) }
 {
 }

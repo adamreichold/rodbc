@@ -20,11 +20,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include "connection.hpp"
-
-#include <boost/noncopyable.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/tss.hpp>
+#include "connection_pool.hpp"
 
 namespace rodbc
 {
@@ -32,13 +28,18 @@ namespace rodbc
 /**
  * @brief The Database class template
  */
-template< typename Database_ >
+template< typename Database_, typename Statements, typename ConnectionPool >
 class Database : private boost::noncopyable
 {
 public:
-    Database( std::string connStr );
+    template< typename... Args >
+    explicit Database( const char* const connStr, Args&&... args );
 
 protected:
+    using Lease = typename ConnectionPool::Lease;
+
+    class BoundStatement;
+
     class BoundTransaction : private boost::noncopyable
     {
     protected:
@@ -47,13 +48,16 @@ protected:
         void doCommit();
 
         Database_& database;
+        Lease lease;
         Transaction transaction;
+
+        friend class BoundStatement;
     };
 
     class BoundStatement : private boost::noncopyable
     {
     protected:
-        BoundStatement( Database_& database );
+        BoundStatement( BoundTransaction& transaction );
 
         template< typename Statement >
         void doExec( Statement& stmt );
@@ -61,33 +65,11 @@ protected:
         bool doFetch( Statement& stmt );
 
         Database_& database;
-        typename Database_::Statements& stmts;
+        Lease& lease;
+        Statements& stmts;
     };
 
-    template< typename Action >
-    void withStatements( Action action );
-
-private:
-    boost::mutex mutex_;
-    Environment env_;
-    const std::string connStr_;
-
-    Connection makeConnection();
-
-    struct Session
-    {
-        Session( Database_& db, Connection&& conn );
-
-        Connection conn;
-        typename Database_::Statements stmts;
-    };
-
-    boost::thread_specific_ptr< Session > session_;
-
-    Session& openSession();
-
-    template< typename Action >
-    auto closeDeadSession( Action action ) -> decltype ( action() );
+    ConnectionPool pool_;
 };
 
 }

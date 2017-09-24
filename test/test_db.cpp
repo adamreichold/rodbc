@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectFoos )
     foobar::Database::Transaction trans{ db };
 
     {
-        foobar::Database::InsertFoo stmt{ db };
+        foobar::Database::InsertFoo stmt{ trans };
 
         for ( int i = 0; i < 256; ++i )
         {
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectFoos )
     }
 
     {
-        foobar::Database::SelectAllFoo stmt{ db };
+        foobar::Database::SelectAllFoo stmt{ trans };
 
         BOOST_CHECK_NO_THROW( stmt.exec() );
 
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
     foobar::Database::Transaction trans{ db };
 
     {
-        foobar::Database::InsertBar stmt{ db };
+        foobar::Database::InsertBar stmt{ trans };
 
         stmt.bar.resize( 2048 );
 
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
     }
 
     {
-        foobar::Database::SelectBarByA stmt{ db };
+        foobar::Database::SelectBarByA stmt{ trans };
 
         stmt.a = 576.0f;
 
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_SUITE_END()
 
 struct BarfooFixture
 {
-    std::unique_ptr< barfoo::Database > db{ new barfoo::DatabaseImpl{ RODBC_TEST_CONN_STR } };
+    std::unique_ptr< barfoo::Database > db{ new barfoo::DatabaseImpl{ RODBC_TEST_CONN_STR, 1 } };
 };
 
 BOOST_FIXTURE_TEST_SUITE( barfooDb, BarfooFixture )
@@ -132,12 +132,12 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectFoos )
     {
         for ( int i = 0; i < 256; ++i )
         {
-            db->insertFoo( { i, i * i, i * i * i } );
+            db->insertFoo( *trans, { i, i * i, i * i * i } );
         }
     }
 
     {
-        const auto foos = db->selectAllFoo();
+        const auto foos = db->selectAllFoo( *trans );
 
         BOOST_CHECK_EQUAL( 256, foos.size() );
 
@@ -167,11 +167,11 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectBars )
             bars[ i ].c = 3.0f * i;
         }
 
-        db->insertBar( bars );
+        db->insertBar( *trans, bars );
     }
 
     {
-        const auto bars = db->selectBarByA( 512.0f );
+        const auto bars = db->selectBarByA( *trans, 512.0f );
 
         BOOST_CHECK_EQUAL( 512, bars.size() );
 

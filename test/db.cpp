@@ -27,10 +27,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 namespace foobar
 {
 
-struct Database::Statements
+struct Statements
 {
-    Database::Stats& stats;
-
     rodbc::CreateTable< Foo > createFoo;
     rodbc::CreateTable< Bar > createBar;
 
@@ -40,27 +38,19 @@ struct Database::Statements
     rodbc::TypedStatement< std::vector< Bar >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< Bar > > selectBarByA;
 
-    Statements( Database& database, rodbc::Connection& conn )
-    : stats{ database.stats_ }
-    , createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    explicit Statements( rodbc::Connection& conn )
+    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
     , selectAllFoo{ conn, "SELECT x, y, z FROM foo" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?)" }
     , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?", 128 }
     {
-        stats.sessions++;
-        stats.activeSessions++;
-    }
-
-    ~Statements()
-    {
-        stats.activeSessions--;
     }
 };
 
 Database::Database( const char* const connStr )
-: rodbc::Database< Database >{ connStr }
+: rodbc::Database< Database, Statements, rodbc::ThreadLocalConnectionPool< Statements > >{ connStr }
 {
 }
 
@@ -83,8 +73,8 @@ void Database::Transaction::commit()
     database.stats_.committedTransactions++;
 }
 
-Database::InsertFoo::InsertFoo( Database& database )
-: BoundStatement{ database }
+Database::InsertFoo::InsertFoo( Transaction& transaction )
+: BoundStatement{ transaction }
 , foo{ stmts.insertFoo.params() }
 {
     database.stats_.statements++;
@@ -102,8 +92,8 @@ void Database::InsertFoo::exec()
     doExec( stmts.insertFoo );
 }
 
-Database::SelectAllFoo::SelectAllFoo( Database& database )
-: BoundStatement{ database }
+Database::SelectAllFoo::SelectAllFoo( Transaction& transaction )
+: BoundStatement{ transaction }
 , foo{ stmts.selectAllFoo.cols() }
 {
     database.stats_.statements++;
@@ -126,8 +116,8 @@ bool Database::SelectAllFoo::fetch()
     return doFetch( stmts.selectAllFoo );
 }
 
-Database::InsertBar::InsertBar( Database& database )
-: BoundStatement{ database }
+Database::InsertBar::InsertBar( Transaction& transaction )
+: BoundStatement{ transaction }
 , bar{ stmts.insertBar.params() }
 {
     database.stats_.statements++;
@@ -145,8 +135,8 @@ void Database::InsertBar::exec()
     doExec( stmts.insertBar );
 }
 
-Database::SelectBarByA::SelectBarByA( Database& database )
-: BoundStatement{ database }
+Database::SelectBarByA::SelectBarByA( Transaction& transaction )
+: BoundStatement{ transaction }
 , a{ std::get< 0 >( stmts.selectBarByA.params() ) }
 , bar{ stmts.selectBarByA.cols() }
 {
@@ -184,7 +174,7 @@ Transaction::~Transaction() = default;
 
 Database::~Database() = default;
 
-struct DatabaseImpl::Statements
+struct Statements
 {
     rodbc::CreateTable< std::tuple< int, int, int > > createFoo;
     rodbc::CreateTable< std::tuple< float, float, float > > createBar;
@@ -195,7 +185,7 @@ struct DatabaseImpl::Statements
     rodbc::TypedStatement< std::vector< std::tuple< float, float, float > >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
-    Statements( DatabaseImpl&, rodbc::Connection& conn )
+    Statements( rodbc::Connection& conn )
     : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
@@ -217,10 +207,22 @@ struct DatabaseImpl::TransactionImpl final : Transaction, private BoundTransacti
     {
         doCommit();
     }
+
+    template< typename Action >
+    void withLease( Action action )
+    {
+        lease( action );
+    }
 };
 
-DatabaseImpl::DatabaseImpl( const char* const connStr )
-: rodbc::Database< DatabaseImpl >( connStr )
+template< typename Action >
+void DatabaseImpl::withLease( Transaction& transaction, Action action )
+{
+    static_cast< TransactionImpl& >( transaction ).withLease( action );
+}
+
+DatabaseImpl::DatabaseImpl( const char* const connStr, const std::size_t connPoolSize )
+: rodbc::Database< DatabaseImpl, Statements, rodbc::FixedSizeConnectionPool< Statements > >{ connStr, connPoolSize }
 {
 }
 
@@ -231,9 +233,9 @@ std::unique_ptr< Transaction > DatabaseImpl::startTransaction()
     return std::unique_ptr< Transaction >{ new TransactionImpl{ *this } };
 }
 
-void DatabaseImpl::insertFoo( const Foo& foo )
+void DatabaseImpl::insertFoo( Transaction& transaction, const Foo& foo )
 {
-    withStatements( [&]( Statements& stmts )
+    withLease( transaction, [&]( Statements& stmts )
     {
         auto& stmt = stmts.insertFoo;
         auto& params = stmt.params();
@@ -246,11 +248,11 @@ void DatabaseImpl::insertFoo( const Foo& foo )
     } );
 }
 
-std::vector< Foo > DatabaseImpl::selectAllFoo()
+std::vector< Foo > DatabaseImpl::selectAllFoo( Transaction& transaction )
 {
     std::vector< Foo > foos;
 
-    withStatements( [&]( Statements& stmts )
+    withLease( transaction, [&]( Statements& stmts )
     {
         auto& stmt = stmts.selectAllFoo;
         const auto& cols = stmt.cols();
@@ -271,9 +273,9 @@ std::vector< Foo > DatabaseImpl::selectAllFoo()
     return foos;
 }
 
-void DatabaseImpl::insertBar( const std::vector< Bar >& bars )
+void DatabaseImpl::insertBar( Transaction& transaction, const std::vector< Bar >& bars )
 {
-    withStatements( [&]( Statements& stmts )
+    withLease( transaction, [&]( Statements& stmts )
     {
         auto& stmt = stmts.insertBar;
         auto& params = stmt.params();
@@ -295,11 +297,11 @@ void DatabaseImpl::insertBar( const std::vector< Bar >& bars )
     } );
 }
 
-std::vector< Bar > DatabaseImpl::selectBarByA( const float a )
+std::vector< Bar > DatabaseImpl::selectBarByA( Transaction& transaction, const float a )
 {
     std::vector< Bar > bars;
 
-    withStatements( [&]( Statements& stmts )
+    withLease( transaction, [&]( Statements& stmts )
     {
         auto& stmt = stmts.selectBarByA;
         auto& param = std::get< 0 >( stmt.params() );
