@@ -20,14 +20,14 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "db.hpp"
 
+#include "connection_pool.ipp"
 #include "create_table.ipp"
-#include "database.ipp"
 #include "typed_statement.ipp"
 
 namespace foobar
 {
 
-struct Statements
+struct Database::Stmts
 {
     rodbc::CreateTable< Foo > createFoo;
     rodbc::CreateTable< Bar > createBar;
@@ -38,7 +38,7 @@ struct Statements
     rodbc::TypedStatement< std::vector< Bar >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< Bar > > selectBarByA;
 
-    explicit Statements( rodbc::Connection& conn )
+    explicit Stmts( rodbc::Connection& conn )
     : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
@@ -50,12 +50,14 @@ struct Statements
 };
 
 Database::Database( const char* const connStr )
-: rodbc::Database< Database, Statements, rodbc::ThreadLocalConnectionPool< Statements > >{ connStr }
+: pool_{ connStr }
 {
 }
 
 Database::Transaction::Transaction( Database& database )
-: BoundTransaction{ database }
+: database{ database }
+, lease{ database.pool_ }
+, transaction{ lease( []( rodbc::Connection& conn ) { return rodbc::Transaction{ conn }; } ) }
 {
     database.stats_.transactions++;
     database.stats_.activeTransactions++;
@@ -68,23 +70,42 @@ Database::Transaction::~Transaction()
 
 void Database::Transaction::commit()
 {
-    doCommit();
+    lease( [ this ]() { transaction.commit(); } );
 
     database.stats_.committedTransactions++;
 }
 
-Database::InsertFoo::InsertFoo( Transaction& transaction )
-: BoundStatement{ transaction }
-, foo{ stmts.insertFoo.params() }
+Database::Statement::Statement( Transaction& transaction )
+: database{ transaction.database }
+, lease{ transaction.lease }
+, stmts{ *lease( []( Stmts& stmts ) { return &stmts; } ) }
 {
     database.stats_.statements++;
     database.stats_.activeStatements++;
-    database.stats_.insertFoo++;
 }
 
-Database::InsertFoo::~InsertFoo()
+Database::Statement::~Statement()
 {
     database.stats_.activeStatements--;
+}
+
+template< typename Stmt >
+void Database::Statement::doExec( Stmt& stmt )
+{
+    lease( [ &stmt ]() { stmt.exec(); } );
+}
+
+template< typename Stmt >
+bool Database::Statement::doFetch( Stmt& stmt )
+{
+    return lease( [ &stmt ]() { return stmt.fetch(); } );
+}
+
+Database::InsertFoo::InsertFoo( Transaction& transaction )
+: Statement{ transaction }
+, foo{ stmts.insertFoo.params() }
+{
+    database.stats_.insertFoo++;
 }
 
 void Database::InsertFoo::exec()
@@ -93,17 +114,10 @@ void Database::InsertFoo::exec()
 }
 
 Database::SelectAllFoo::SelectAllFoo( Transaction& transaction )
-: BoundStatement{ transaction }
+: Statement{ transaction }
 , foo{ stmts.selectAllFoo.cols() }
 {
-    database.stats_.statements++;
-    database.stats_.activeStatements++;
     database.stats_.selectAllFoo++;
-}
-
-Database::SelectAllFoo::~SelectAllFoo()
-{
-    database.stats_.activeStatements--;
 }
 
 void Database::SelectAllFoo::exec()
@@ -117,17 +131,10 @@ bool Database::SelectAllFoo::fetch()
 }
 
 Database::InsertBar::InsertBar( Transaction& transaction )
-: BoundStatement{ transaction }
+: Statement{ transaction }
 , bar{ stmts.insertBar.params() }
 {
-    database.stats_.statements++;
-    database.stats_.activeStatements++;
     database.stats_.insertBar++;
-}
-
-Database::InsertBar::~InsertBar()
-{
-    database.stats_.activeStatements--;
 }
 
 void Database::InsertBar::exec()
@@ -136,18 +143,11 @@ void Database::InsertBar::exec()
 }
 
 Database::SelectBarByA::SelectBarByA( Transaction& transaction )
-: BoundStatement{ transaction }
+: Statement{ transaction }
 , a{ std::get< 0 >( stmts.selectBarByA.params() ) }
 , bar{ stmts.selectBarByA.cols() }
 {
-    database.stats_.statements++;
-    database.stats_.activeStatements++;
     database.stats_.selectBarByA++;
-}
-
-Database::SelectBarByA::~SelectBarByA()
-{
-    database.stats_.activeStatements--;
 }
 
 void Database::SelectBarByA::exec()
@@ -185,7 +185,7 @@ struct Statements
     rodbc::TypedStatement< std::vector< std::tuple< float, float, float > >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
-    Statements( rodbc::Connection& conn )
+    explicit Statements( rodbc::Connection& conn )
     : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
@@ -196,41 +196,70 @@ struct Statements
     }
 };
 
-struct DatabaseImpl::TransactionImpl final : Transaction, private BoundTransaction
-{
-    TransactionImpl( DatabaseImpl& database )
-    : BoundTransaction{ database }
-    {
-    }
+using ConnectionPool = rodbc::FixedSizeConnectionPool< Statements >;
 
-    void commit() override
-    {
-        doCommit();
-    }
+class TransactionImpl final : public Transaction
+{
+public:
+    TransactionImpl( ConnectionPool& pool );
+
+    void commit() override;
 
     template< typename Action >
-    void withLease( Action action )
-    {
-        lease( action );
-    }
+    void withLease( Action action );
+
+private:
+    ConnectionPool::Lease lease;
+    rodbc::Transaction transaction;
 };
 
-template< typename Action >
-void DatabaseImpl::withLease( Transaction& transaction, Action action )
+class DatabaseImpl final : public Database
 {
-    static_cast< TransactionImpl& >( transaction ).withLease( action );
+public:
+    DatabaseImpl( const char* const connStr, const std::size_t connPoolSize );
+
+    std::unique_ptr< Transaction > startTransaction() override;
+
+    void insertFoo( Transaction& transaction, const Foo& foo ) override;
+    std::vector< Foo > selectAllFoo( Transaction& transaction ) override;
+    void insertBar( Transaction& transaction, const std::vector< Bar >& bars ) override;
+    std::vector< Bar > selectBarByA( Transaction& transaction, const float a ) override;
+
+private:
+    ConnectionPool pool_;
+};
+
+TransactionImpl::TransactionImpl(ConnectionPool &pool)
+: lease{ pool }
+, transaction{ lease( []( rodbc::Connection& conn ) { return rodbc::Transaction{ conn }; } ) }
+{
+}
+
+void TransactionImpl::commit()
+{
+    lease( [ this ]() { transaction.commit(); } );
+}
+
+template< typename Action >
+void TransactionImpl::withLease( Action action )
+{
+    lease( action );
+}
+
+template< typename Action >
+void withLease( Transaction& transaction, Action&& action )
+{
+    static_cast< TransactionImpl& >( transaction ).withLease( std::forward< Action >( action ) );
 }
 
 DatabaseImpl::DatabaseImpl( const char* const connStr, const std::size_t connPoolSize )
-: rodbc::Database< DatabaseImpl, Statements, rodbc::FixedSizeConnectionPool< Statements > >{ connStr, connPoolSize }
+: pool_{ connStr, connPoolSize }
 {
 }
 
-DatabaseImpl::~DatabaseImpl() = default;
-
 std::unique_ptr< Transaction > DatabaseImpl::startTransaction()
 {
-    return std::unique_ptr< Transaction >{ new TransactionImpl{ *this } };
+    return std::unique_ptr< Transaction >{ new TransactionImpl{ pool_ } };
 }
 
 void DatabaseImpl::insertFoo( Transaction& transaction, const Foo& foo )
@@ -328,6 +357,11 @@ std::vector< Bar > DatabaseImpl::selectBarByA( Transaction& transaction, const f
     } );
 
     return bars;
+}
+
+std::unique_ptr< Database > makeDatabase( const char* const connStr, const std::size_t connPoolSize )
+{
+    return std::unique_ptr< Database >( new DatabaseImpl{ connStr, connPoolSize } );
 }
 
 }

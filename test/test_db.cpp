@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_SUITE_END()
 
 struct BarfooFixture
 {
-    std::unique_ptr< barfoo::Database > db{ new barfoo::DatabaseImpl{ RODBC_TEST_CONN_STR, 1 } };
+    std::unique_ptr< barfoo::Database > db = barfoo::makeDatabase( RODBC_TEST_CONN_STR, 1 );
 };
 
 BOOST_FIXTURE_TEST_SUITE( barfooDb, BarfooFixture )

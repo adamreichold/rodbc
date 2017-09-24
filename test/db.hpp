@@ -20,13 +20,11 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include "database.hpp"
+#include "connection_pool.hpp"
 
 #include <boost/fusion/include/define_struct.hpp>
 
 #include <atomic>
-#include <memory>
-#include <vector>
 
 BOOST_FUSION_DEFINE_STRUCT(
     ( foobar ), Foo,
@@ -45,60 +43,89 @@ BOOST_FUSION_DEFINE_STRUCT(
 namespace foobar
 {
 
-struct Statements;
-
-struct Database : rodbc::Database< Database, Statements, rodbc::ThreadLocalConnectionPool< Statements > >
+class Database
 {
+public:
     Database( const char* const connStr );
 
-    struct Stats;
+private:
+    struct Stmts;
 
-    struct Transaction : BoundTransaction
+    using ConnectionPool = rodbc::ThreadLocalConnectionPool< Stmts >;
+
+    ConnectionPool pool_;
+
+    class Statement;
+
+public:
+    class Transaction
     {
+    public:
         Transaction( Database& database );
         ~Transaction();
 
         void commit();
+
+    private:
+        Database& database;
+        ConnectionPool::Lease lease;
+        rodbc::Transaction transaction;
+
+        friend class Statement;
     };
 
-    struct InsertFoo : BoundStatement
+private:
+    class Statement
+    {
+    protected:
+        Statement( Transaction& transaction );
+        ~Statement();
+
+        template< typename Stmt >
+        void doExec( Stmt& stmt );
+        template< typename Stmt >
+        bool doFetch( Stmt& stmt );
+
+        Database& database;
+        ConnectionPool::Lease& lease;
+        Stmts& stmts;
+    };
+
+public:
+    struct InsertFoo : private Statement
     {
         Foo& foo;
 
         InsertFoo( Transaction& transaction );
-        ~InsertFoo();
 
         void exec();
     };
 
-    struct SelectAllFoo : BoundStatement
+    struct SelectAllFoo : private Statement
     {
         const Foo& foo;
 
         SelectAllFoo( Transaction& transaction );
-        ~SelectAllFoo();
 
         void exec();
         bool fetch();
     };
 
-    struct InsertBar : BoundStatement
+    struct InsertBar : private Statement
     {
         std::vector< Bar >& bar;
 
         InsertBar( Transaction& transaction );
-        ~InsertBar();
 
         void exec();
     };
 
-    struct SelectBarByA : BoundStatement
+    struct SelectBarByA : private Statement
     {
         float& a;
         const std::vector< Bar >& bar;
 
         SelectBarByA( Transaction& transaction );
-        ~SelectBarByA();
 
         void exec();
         bool fetch();
@@ -160,25 +187,6 @@ struct Database
     virtual std::vector< Bar > selectBarByA( Transaction& transaction, const float a ) = 0;
 };
 
-struct Statements;
-
-struct DatabaseImpl final : Database, rodbc::Database< DatabaseImpl, Statements, rodbc::FixedSizeConnectionPool< Statements > >
-{
-    DatabaseImpl( const char* const connStr, const std::size_t connPoolSize );
-    ~DatabaseImpl();
-
-    std::unique_ptr< Transaction > startTransaction() override;
-
-    void insertFoo( Transaction& transaction, const Foo& foo ) override;
-    std::vector< Foo > selectAllFoo( Transaction& transaction ) override;
-    void insertBar( Transaction& transaction, const std::vector< Bar >& bars ) override;
-    std::vector< Bar > selectBarByA( Transaction& transaction, const float a ) override;
-
-private:
-    struct TransactionImpl;
-
-    template< typename Action >
-    void withLease( Transaction& transaction, Action action );
-};
+std::unique_ptr< Database > makeDatabase( const char* const connStr, const std::size_t connPoolSize );
 
 }
