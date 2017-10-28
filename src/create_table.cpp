@@ -22,6 +22,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "statement.hpp"
 
+#include <sstream>
+
 namespace rodbc
 {
 namespace detail
@@ -29,64 +31,72 @@ namespace detail
 
 void dropTableIfExists( Connection& conn, const char* const name )
 {
-    std::string stmt{ "DROP TABLE IF EXISTS " };
+    std::ostringstream stmt;
 
-    stmt += name;
+    stmt << "DROP TABLE IF EXISTS " << name;
 
-    Statement{ conn, stmt.c_str() }.exec();
+    Statement{ conn, stmt.str().c_str() }.exec();
 }
 
 void createTable(
     Connection& conn, const char* const name,
-    const char* const* const columnNamesBegin, const char* const* const columnNamesEnd,
-    const char* const* const columnTypesBegin, const char* const* const columnTypesEnd,
+    const char* const* const columnNames, const std::size_t columnNamesSize,
+    const char* const* const columnTypes, const std::size_t* const columnSizes, const char* const* const columnConstraints,
     const std::size_t* const primaryKeyBegin, const std::size_t* const primaryKeyEnd,
     const bool temporary
 )
 {
-    std::string stmt{ "CREATE " };
+    std::ostringstream stmt;
+
+    stmt << "CREATE ";
 
     if ( temporary )
     {
-        stmt += "TEMPORARY ";
+        stmt << "TEMPORARY ";
     }
 
-    stmt += "TABLE ";
-    stmt += name;
-    stmt += " (";
+    stmt << "TABLE " << name << " (";
 
-    for ( auto columnName = columnNamesBegin, columnType = columnTypesBegin; columnName != columnNamesEnd && columnType != columnTypesEnd; ++columnName, ++columnType )
+    for ( std::size_t column = 0; column != columnNamesSize; ++column )
     {
-        if ( columnName != columnNamesBegin )
+        if ( column != 0 )
         {
-            stmt += ", ";
+            stmt << ", ";
         }
 
-        stmt += *columnName;
-        stmt += ' ';
-        stmt += *columnType;
+        stmt << columnNames[ column ] << ' ' << columnTypes[ column ];
+
+        if ( const std::size_t size = columnSizes[ column ] )
+        {
+            stmt << '(' << size << ')';
+        }
+
+        if ( const char* const constraint = columnConstraints[ column ] )
+        {
+            stmt << ' ' << constraint;
+        }
     }
 
     if ( primaryKeyBegin != primaryKeyEnd )
     {
-        stmt += ", PRIMARY KEY (";
+        stmt << ", PRIMARY KEY (";
 
-        for ( auto primaryKey = primaryKeyBegin; primaryKey != primaryKeyEnd; ++primaryKey )
+        for ( const auto* primaryKey = primaryKeyBegin; primaryKey != primaryKeyEnd; ++primaryKey )
         {
             if ( primaryKey != primaryKeyBegin )
             {
-                stmt += ", ";
+                stmt << ", ";
             }
 
-            stmt += columnNamesBegin[ *primaryKey ];
+            stmt << columnNames[ *primaryKey ];
         }
 
-        stmt += ')';
+        stmt << ')';
     }
 
-    stmt += ')';
+    stmt << ')';
 
-    Statement{ conn, stmt.c_str() }.exec();
+    Statement{ conn, stmt.str().c_str() }.exec();
 }
 
 }

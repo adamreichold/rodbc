@@ -32,9 +32,11 @@ namespace rodbc
 template< typename StagedParams, typename Params, typename Cols, typename StagingIndex = std::int32_t >
 class StagedStatement
 {
-public:
-    using StagingColumns = typename CreateTable< std::pair< StagingIndex, StagedParams >, 0 >::ColumnNames;
+private:
+    using CreateStagingTable = CreateTable< std::pair< StagingIndex, StagedParams >, 0 >;
+    using StagingColumns = typename CreateStagingTable::ColumnNames;
 
+public:
     StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt );
 
     void resizeStagedParams( const StagingIndex size );
@@ -48,7 +50,7 @@ public:
     bool fetch();
 
 private:
-    CreateTable< std::pair< StagingIndex, StagedParams >, 0 > createStagingTable_;
+    CreateStagingTable createStagingTable_;
     TypedStatement< std::tuple<>, std::tuple<> > deleteFromStagingTable_;
     TypedStatement< std::vector< std::pair< StagingIndex, StagedParams > >, std::tuple<> > insertIntoStagingTable_;
     TypedStatement< Params, Cols > stmt_;

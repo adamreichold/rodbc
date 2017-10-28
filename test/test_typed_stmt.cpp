@@ -96,10 +96,7 @@ BOOST_FIXTURE_TEST_SUITE( typedStmt, Fixture )
 
 BOOST_AUTO_TEST_CASE( canRebindParameterSet )
 {
-    rodbc::CreateTable< std::tuple< int > >{
-        conn, "tbl", { "col" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
-    };
+    CreateSimpleTable< int >{ conn };
 
     rodbc::TypedStatement< std::vector< std::tuple< int > >, std::tuple<> > insertStmt{
         conn, "INSERT INTO tbl (col) VALUES (?)"
@@ -137,10 +134,7 @@ BOOST_AUTO_TEST_CASE( canRebindParameterSet )
 
 BOOST_AUTO_TEST_CASE( canRebindRowSet )
 {
-    rodbc::CreateTable< std::tuple< int > >{
-        conn, "tbl", { "col" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
-    };
+    CreateSimpleTable< int >{ conn };
 
     rodbc::Statement insertStmt{
         conn, "INSERT INTO tbl (col) VALUES (?)"

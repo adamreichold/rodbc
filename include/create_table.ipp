@@ -22,6 +22,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "create_table.hpp"
 
+#include "column_definition.hpp"
+
 #include <boost/fusion/include/flatten_view.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <boost/mpl/size.hpp>
@@ -45,68 +47,78 @@ inline void forEachColumn( Action action )
     boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
 }
 
-template< typename Columns >
-using ColumnNamesBase = std::array< const char*, sizeOfColumns< Columns >() >;
-
-template< typename Type > struct ColumnType;
-template<> struct ColumnType< std::int8_t > { static constexpr const char* value = "TINYINT"; };
-template<> struct ColumnType< std::int16_t > { static constexpr const char* value = "SMALLINT"; };
-template<> struct ColumnType< std::int32_t > { static constexpr const char* value = "INT"; };
-template<> struct ColumnType< std::int64_t > { static constexpr const char* value = "BIGINT"; };
-template<> struct ColumnType< std::uint8_t > { static constexpr const char* value = "TINYINT UNSIGNED"; };
-template<> struct ColumnType< std::uint16_t > { static constexpr const char* value = "SMALLINT UNSIGNED"; };
-template<> struct ColumnType< std::uint32_t > { static constexpr const char* value = "INT UNSIGNED"; };
-template<> struct ColumnType< std::uint64_t > { static constexpr const char* value = "BIGINT UNSIGNED"; };
-template<> struct ColumnType< float > { static constexpr const char* value = "REAL"; };
-template<> struct ColumnType< double > { static constexpr const char* value = "DOUBLE PRECISION"; };
-template< std::size_t Size > struct ColumnType< String< Size > > { static constexpr const char* value = "TEXT"; };
-template<> struct ColumnType< Timestamp > { static constexpr const char* value = "TIMESTAMP"; };
-template< typename Type > struct ColumnType< Nullable< Type > > { static constexpr const char* value = ColumnType< Type >::value; };
-
 struct ColumnTypeInserter
 {
     const char** values;
 
-    template< typename Type >
-    void operator() ( const Type& )
+    template< typename Column >
+    void operator() ( const Column& )
     {
-        *values++ = ColumnType< Type >::value;
+        *values++ = ColumnDefinition< Column >::type;
+    }
+};
+
+struct ColumnSizeInserter
+{
+    std::size_t* values;
+
+    template< typename Column >
+    void operator() ( const Column& )
+    {
+        *values++ = ColumnDefinition< Column >::size;
+    }
+};
+
+struct ColumnConstraintInserter
+{
+    const char** values;
+
+    template< typename Column >
+    void operator() ( const Column& )
+    {
+        *values++ = ColumnDefinition< Column >::constraint;
     }
 };
 
 template< typename Columns >
-inline constexpr bool areValidIndices()
+inline constexpr bool isValidPrimaryKey()
 {
     return true;
 }
 
 template< typename Columns, std::size_t Index, std::size_t... Indices >
-inline constexpr bool areValidIndices()
+inline constexpr bool isValidPrimaryKey()
 {
-    return sizeOfColumns< Columns >() > Index && areValidIndices< Columns, Indices... >();
+    return sizeOfColumns< Columns >() > Index && isValidPrimaryKey< Columns, Indices... >();
 }
 
 void dropTableIfExists( Connection& conn, const char* const name );
 
 void createTable(
     Connection& conn, const char* const name,
-    const char* const* const columnNamesBegin, const char* const* const columnNamesEnd,
-    const char* const* const columnTypesBegin, const char* const* const columnTypesEnd,
+    const char* const* const columnNames, const std::size_t columnNamesSize,
+    const char* const* const columnTypes, const std::size_t* const columnSizes, const char* const* const columnConstraints,
     const std::size_t* const primaryKeyBegin, const std::size_t* const primaryKeyEnd,
     const bool temporary
 );
+
+template< typename Columns >
+struct ColumnNamesBase : std::array< const char*, sizeOfColumns< Columns >() >
+{
+    template< typename... Values >
+    ColumnNamesBase( Values&&... values )
+    : std::array< const char*, sizeOfColumns< Columns >() >{ std::forward< Values >( values )... }
+    {
+        static_assert( sizeOfColumns< Columns >() == sizeof... ( Values ), "Number of columns and column names must be equal." );
+    }
+};
 
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
 struct CreateTable< Columns, PrimaryKey... >::ColumnNames : detail::ColumnNamesBase< Columns >
 {
-    template< typename... Values >
-    ColumnNames( Values&&... values )
-    : detail::ColumnNamesBase< Columns >{ std::forward< Values >( values )... }
-    {
-        static_assert( detail::sizeOfColumns< Columns >() == sizeof... ( Values ), "Number of columns and column names must be equal." );
-    }
+    using detail::ColumnNamesBase< Columns >::ColumnNamesBase;
 };
 
 template< typename Columns, std::size_t... PrimaryKey >
@@ -114,11 +126,17 @@ inline CreateTable< Columns, PrimaryKey... >::CreateTable( Connection& conn, con
 {
     using namespace detail;
 
-    const char* columnTypes[ sizeOfColumns< Columns >() ];
+    const char* columnTypes[ columnNames.size() ];
     forEachColumn< Columns >( ColumnTypeInserter{ columnTypes } );
 
+    std::size_t columnSizes[ columnNames.size() ];
+    forEachColumn< Columns >( ColumnSizeInserter{ columnSizes } );
+
+    const char* columnConstraints[ columnNames.size() ];
+    forEachColumn< Columns >( ColumnConstraintInserter{ columnConstraints } );
+
     const std::size_t primaryKey[]{ PrimaryKey... };
-    static_assert( areValidIndices< Columns, PrimaryKey... >(), "Primary key column indices must be valid." );
+    static_assert( isValidPrimaryKey< Columns, PrimaryKey... >(), "Primary key column indices must be valid." );
 
     if ( flags & DROP_TABLE_IF_EXISTS )
     {
@@ -127,8 +145,8 @@ inline CreateTable< Columns, PrimaryKey... >::CreateTable( Connection& conn, con
 
     createTable(
         conn, tableName,
-        std::begin( columnNames ), std::end( columnNames ),
-        std::begin( columnTypes ), std::end( columnTypes ),
+        columnNames.data(), columnNames.size(),
+        columnTypes, columnSizes, columnConstraints,
         &primaryKey[ 0 ], &primaryKey[ sizeof... ( PrimaryKey ) ],
         flags & TEMPORARY_TABLE
     );

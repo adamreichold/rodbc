@@ -32,10 +32,7 @@ BOOST_FIXTURE_TEST_SUITE( resultSet, Fixture )
 
 BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
 {
-    rodbc::CreateTable< std::tuple< int > >{
-        conn, "tbl", { "col" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
-    };
+    CreateSimpleTable< int >{ conn };
 
     rodbc::TypedStatement< std::tuple< int >, std::tuple<> > insertStmt{
         conn, "INSERT INTO tbl (col) VALUES (?)"
@@ -75,10 +72,7 @@ BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
 
 BOOST_AUTO_TEST_CASE( canIterateThroughRowSets )
 {
-    rodbc::CreateTable< std::tuple< int > >{
-        conn, "tbl", { "col" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
-    };
+    CreateSimpleTable< int >{ conn };
 
     rodbc::TypedStatement< std::tuple< int >, std::tuple<> > insertStmt{
         conn, "INSERT INTO tbl (col) VALUES (?)"

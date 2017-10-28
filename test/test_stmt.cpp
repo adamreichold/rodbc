@@ -48,10 +48,7 @@ bool createSingleColumnTable( rodbc::Connection& conn )
         return false;
     }
 
-    rodbc::CreateTable< std::tuple< Type > >{
-        conn, "tbl", { "col" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
-    };
+    CreateSimpleTable< Type >{ conn };
 
     return true;
 }
@@ -150,7 +147,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( canInsertAndSelectMaximum, Type, IntegerTypes )
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( canInsertAndSelectNull, Type, NumericTypes )
 {
-    if ( !createSingleColumnTable< Type >( conn ) )
+    if ( !createSingleColumnTable< rodbc::Nullable< Type > >( conn ) )
     {
         return;
     }

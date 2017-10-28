@@ -20,6 +20,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "staged_statement.ipp"
 
+#include <sstream>
+
 namespace rodbc
 {
 namespace detail
@@ -27,45 +29,44 @@ namespace detail
 
 std::string deleteFrom( const char* const tableName )
 {
-    std::string stmt{ "DELETE FROM " };
+    std::ostringstream stmt;
 
-    stmt += tableName;
+    stmt << "DELETE FROM " << tableName;
 
-    return stmt;
+    return stmt.str();
 }
 
 std::string insertInto( const char* const tableName, const char* const* const columnNamesBegin, const char* const* const columnNamesEnd )
 {
-    std::string stmt{ "INSERT INTO " };
+    std::ostringstream stmt;
 
-    stmt += tableName;
-    stmt += " (";
-
-    for ( auto columnName = columnNamesBegin; columnName != columnNamesEnd; ++columnName )
-    {
-        if ( columnName != columnNamesBegin )
-        {
-            stmt += ", ";
-        }
-
-        stmt += *columnName;
-    }
-
-    stmt += ") VALUES (";
+    stmt << "INSERT INTO " << tableName << " (";
 
     for ( auto columnName = columnNamesBegin; columnName != columnNamesEnd; ++columnName )
     {
         if ( columnName != columnNamesBegin )
         {
-            stmt += ", ";
+            stmt << ", ";
         }
 
-        stmt += '?';
+        stmt << *columnName;
     }
 
-    stmt += ')';
+    stmt << ") VALUES (";
 
-    return stmt;
+    for ( auto columnName = columnNamesBegin; columnName != columnNamesEnd; ++columnName )
+    {
+        if ( columnName != columnNamesBegin )
+        {
+            stmt << ", ";
+        }
+
+        stmt << '?';
+    }
+
+    stmt << ')';
+
+    return stmt.str();
 }
 
 }

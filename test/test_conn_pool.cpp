@@ -3,15 +3,17 @@
 #include "create_table.ipp"
 #include "typed_statement.ipp"
 
+#include "fixture.hpp"
+
 #include <boost/test/unit_test.hpp>
 
 struct Statements
 {
-    rodbc::CreateTable< std::tuple< int > > createTbl;
+    CreateSimpleTable< int > createTbl;
     rodbc::TypedStatement< std::tuple<>, std::tuple< int > > selectStmt;
 
     Statements( rodbc::Connection& conn )
-    : createTbl{ conn, "tbl", { "col" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    : createTbl{ conn }
     , selectStmt{ conn, "SELECT col FROM tbl" }
     {
     }
