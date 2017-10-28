@@ -22,26 +22,17 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "staged_statement.hpp"
 
-#include "create_table.ipp"
+#include "table.ipp"
 #include "typed_statement.ipp"
-
-#include <boost/fusion/include/std_pair.hpp>
 
 namespace rodbc
 {
-namespace detail
-{
-
-std::string deleteFrom( const char* const tableName );
-std::string insertInto( const char* const tableName, const char* const* const columnNamesBegin, const char* const* const columnNamesEnd );
-
-}
 
 template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
-inline StagedStatement< StagedParams, Params, Cols, StagingIndex >::StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt )
-: createStagingTable_{ conn, stagingTable, stagingColumns, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
-, deleteFromStagingTable_{ conn, detail::deleteFrom( stagingTable ).c_str() }
-, insertIntoStagingTable_{ conn, detail::insertInto( stagingTable, std::begin( stagingColumns ), std::end( stagingColumns ) ).c_str() }
+inline StagedStatement< StagedParams, Params, Cols, StagingIndex >::StagedStatement( Connection& conn, const char* const stagingTableName, const StagingColumnNames& stagingColumnNames, const char* const stmt )
+: createStagingTable_{ conn, stagingTableName, stagingColumnNames, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
+, deleteFromStagingTable_{ conn, detail::deleteFrom( stagingTableName ).c_str() }
+, insertIntoStagingTable_{ conn, detail::insertInto( stagingTableName, stagingColumnNames.data(), stagingColumnNames.size() ).c_str() }
 , stmt_{ conn, stmt }
 {
 }
@@ -57,14 +48,14 @@ inline void StagedStatement< StagedParams, Params, Cols, StagingIndex >::resizeS
 
     for ( ; index < size; ++index )
     {
-        params[ index ].first = index;
+        std::get< 0 >( params[ index ] ) = index;
     }
 }
 
 template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
 inline StagedParams& StagedStatement< StagedParams, Params, Cols, StagingIndex >::stagedParams( const StagingIndex index )
 {
-    return insertIntoStagingTable_.params()[ index ].second;
+    return std::get< 1 >( insertIntoStagingTable_.params()[ index ] );
 }
 
 template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >

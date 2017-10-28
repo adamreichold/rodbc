@@ -21,7 +21,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include "db.hpp"
 
 #include "connection_pool.ipp"
-#include "create_table.ipp"
+#include "table.ipp"
 #include "typed_statement.ipp"
 
 namespace foobar
@@ -29,8 +29,8 @@ namespace foobar
 
 struct Database::Stmts
 {
-    rodbc::CreateTable< Foo > createFoo;
-    rodbc::CreateTable< Bar > createBar;
+    rodbc::Table< Foo >::Create createFoo;
+    rodbc::Table< Bar >::Create createBar;
 
     rodbc::TypedStatement< Foo, std::tuple<> > insertFoo;
     rodbc::TypedStatement< std::tuple<>, Foo > selectAllFoo;
@@ -176,8 +176,8 @@ Database::~Database() = default;
 
 struct Statements
 {
-    rodbc::CreateTable< std::tuple< int, int, int > > createFoo;
-    rodbc::CreateTable< std::tuple< float, float, float > > createBar;
+    rodbc::Table< std::tuple< int, int, int > >::Create createFoo;
+    rodbc::Table< std::tuple< float, float, float > >::Create createBar;
 
     rodbc::TypedStatement< std::tuple< int, int, int >, std::tuple<> > insertFoo;
     rodbc::TypedStatement< std::tuple<>, std::tuple< int, int, int > > selectAllFoo;

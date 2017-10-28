@@ -13,7 +13,7 @@ endif()
 find_package( Boost 1.60 COMPONENTS thread REQUIRED )
 include_directories( include ${Boost_INCLUDE_DIR} )
 
-add_library( rodbc SHARED src/types.cpp src/connection.cpp src/statement.cpp src/create_table.cpp src/staged_statement.cpp src/connection_pool.cpp )
+add_library( rodbc SHARED src/types.cpp src/connection.cpp src/statement.cpp src/table.cpp src/connection_pool.cpp )
 set_target_properties( rodbc PROPERTIES VERSION 0.1 SOVERSION 0 )
 target_link_libraries( rodbc odbc ${Boost_LIBRARIES} )
 

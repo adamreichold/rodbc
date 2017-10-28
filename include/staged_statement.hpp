@@ -20,8 +20,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include "create_table.hpp"
-#include "typed_statement.hpp"
+#include "table.hpp"
 
 namespace rodbc
 {
@@ -33,11 +32,13 @@ template< typename StagedParams, typename Params, typename Cols, typename Stagin
 class StagedStatement
 {
 private:
-    using CreateStagingTable = CreateTable< std::pair< StagingIndex, StagedParams >, 0 >;
-    using StagingColumns = typename CreateStagingTable::ColumnNames;
+    using StagingTable = Table< std::tuple< StagingIndex, StagedParams >, 0 >;
+    using StagingColumns = typename StagingTable::Columns;
+    using StagingColumnNames = typename StagingTable::ColumnNames;
+    using CreateStagingTable = typename StagingTable::Create;
 
 public:
-    StagedStatement( Connection& conn, const char* const stagingTable, const StagingColumns& stagingColumns, const char* const stmt );
+    StagedStatement( Connection& conn, const char* const stagingTableName, const StagingColumnNames& stagingColumnNames, const char* const stmt );
 
     void resizeStagedParams( const StagingIndex size );
     StagedParams& stagedParams( const StagingIndex index );
@@ -52,7 +53,7 @@ public:
 private:
     CreateStagingTable createStagingTable_;
     TypedStatement< std::tuple<>, std::tuple<> > deleteFromStagingTable_;
-    TypedStatement< std::vector< std::pair< StagingIndex, StagedParams > >, std::tuple<> > insertIntoStagingTable_;
+    TypedStatement< std::vector< StagingColumns >, std::tuple<> > insertIntoStagingTable_;
     TypedStatement< Params, Cols > stmt_;
 };
 

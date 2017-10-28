@@ -21,7 +21,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "connection.hpp"
-#include "create_table.ipp"
+#include "table.ipp"
 
 struct Fixture
 {
@@ -30,10 +30,10 @@ struct Fixture
 };
 
 template< typename Column >
-struct CreateSimpleTable : rodbc::CreateTable< std::tuple< Column > >
+struct CreateSimpleTable : rodbc::Table< std::tuple< Column > >::Create
 {
     CreateSimpleTable( rodbc::Connection& conn )
-    : rodbc::CreateTable< std::tuple< Column > >{ conn, "tbl", { "col" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    : rodbc::Table< std::tuple< Column > >::Create{ conn, "tbl", { "col" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     {
     }
 };
