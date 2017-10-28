@@ -25,7 +25,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include "column_definition.hpp"
 
 #include <boost/fusion/include/flatten_view.hpp>
+#include <boost/mpl/at.hpp>
 #include <boost/mpl/for_each.hpp>
+#include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/size.hpp>
 
 #include <array>
@@ -46,6 +48,9 @@ inline void forEachColumn( Action action )
 {
     boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
 }
+
+template< typename Columns, std::size_t Index >
+using ColumnAt = typename boost::mpl::at< boost::fusion::flatten_view< Columns >, boost::mpl::integral_c< std::size_t, Index > >::type;
 
 struct ColumnTypeInserter
 {
@@ -89,7 +94,7 @@ inline constexpr bool isValidPrimaryKey()
 template< typename Columns, std::size_t Index, std::size_t... Indices >
 inline constexpr bool isValidPrimaryKey()
 {
-    return sizeOfColumns< Columns >() > Index && isValidPrimaryKey< Columns, Indices... >();
+    return sizeOfColumns< Columns >() > Index && !IsNullable< ColumnAt< Columns, Index > >::value && isValidPrimaryKey< Columns, Indices... >();
 }
 
 void dropTableIfExists( Connection& conn, const char* const name );

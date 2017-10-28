@@ -134,5 +134,15 @@ struct ColumnDefinition< Nullable< Type > >
     static constexpr const char* constraint = "NULL";
 };
 
+template< typename Type >
+struct IsNullable : std::false_type
+{
+};
+
+template< typename Type >
+struct IsNullable< Nullable< Type > > : std::true_type
+{
+};
+
 }
 }

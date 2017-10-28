@@ -22,6 +22,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "staged_statement.hpp"
 
+#include "create_table.ipp"
 #include "typed_statement.ipp"
 
 #include <boost/fusion/include/std_pair.hpp>

@@ -1,6 +1,5 @@
 #include "connection_pool.ipp"
 
-#include "create_table.ipp"
 #include "typed_statement.ipp"
 
 #include "fixture.hpp"

@@ -18,8 +18,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-#include "create_table.ipp"
 #include "result_set.ipp"
+
 #include "typed_statement.ipp"
 
 #include "fixture.hpp"

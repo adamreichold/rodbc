@@ -20,7 +20,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include <types.hpp>
+#include <cstddef>
 
 namespace rodbc
 {
