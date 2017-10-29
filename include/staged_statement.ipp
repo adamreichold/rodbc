@@ -29,10 +29,14 @@ namespace rodbc
 {
 
 template< typename StagedParams, typename Params, typename Cols, typename StagingIndex >
-inline StagedStatement< StagedParams, Params, Cols, StagingIndex >::StagedStatement( Connection& conn, const char* const stagingTableName, const StagingColumnNames& stagingColumnNames, const char* const stmt )
-: createStagingTable_{ conn, stagingTableName, stagingColumnNames, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
-, deleteFromStagingTable_{ conn, detail::deleteFrom( stagingTableName ).c_str() }
-, insertIntoStagingTable_{ conn, detail::insertInto( stagingTableName, stagingColumnNames.data(), stagingColumnNames.size() ).c_str() }
+inline StagedStatement< StagedParams, Params, Cols, StagingIndex >::StagedStatement(
+    Connection& conn,
+    const std::string& stagingTableName, const StagingTableColumnNames& stagingTableColumnNames,
+    const char* const stmt
+)
+: createStagingTable_{ conn, stagingTableName, stagingTableColumnNames, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
+, deleteFromStagingTable_{ conn, detail::deleteAll( stagingTableName ).c_str() }
+, insertIntoStagingTable_{ conn, detail::insert( stagingTableName, stagingTableColumnNames.data(), stagingTableColumnNames.size() ).c_str() }
 , stmt_{ conn, stmt }
 {
 }

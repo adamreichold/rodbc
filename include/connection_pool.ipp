@@ -43,8 +43,8 @@ struct ConnectionPoolHolder final : ConnectionPoolHolderBase
 
 template< typename Statements, typename ConnectionPoolImpl >
 template< typename... Args >
-inline ConnectionPool< Statements, ConnectionPoolImpl >::ConnectionPool( const char* const connStr, Args&&... args )
-: ConnectionPoolBase{ connStr }
+inline ConnectionPool< Statements, ConnectionPoolImpl >::ConnectionPool( std::string connStr, Args&&... args )
+: ConnectionPoolBase{ std::move( connStr ) }
 , ConnectionPoolImpl{ std::forward< Args >( args )... }
 {
 }

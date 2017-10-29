@@ -29,8 +29,8 @@ namespace foobar
 
 struct Database::Stmts
 {
-    rodbc::Table< Foo >::Create createFoo;
-    rodbc::Table< Bar >::Create createBar;
+    rodbc::CreateTable< Foo > createFoo;
+    rodbc::CreateTable< Bar > createBar;
 
     rodbc::TypedStatement< Foo, std::tuple<> > insertFoo;
     rodbc::TypedStatement< std::tuple<>, Foo > selectAllFoo;
@@ -176,23 +176,19 @@ Database::~Database() = default;
 
 struct Statements
 {
-    rodbc::Table< std::tuple< int, int, int > >::Create createFoo;
-    rodbc::Table< std::tuple< float, float, float > >::Create createBar;
+    rodbc::Table< std::tuple< int, int, int > > foo;
 
-    rodbc::TypedStatement< std::tuple< int, int, int >, std::tuple<> > insertFoo;
-    rodbc::TypedStatement< std::tuple<>, std::tuple< int, int, int > > selectAllFoo;
-
+    rodbc::CreateTable< std::tuple< float, float, float > > createBar;
     rodbc::TypedStatement< std::vector< std::tuple< float, float, float > >, std::tuple<> > insertBar;
     rodbc::TypedStatement< std::tuple< float >, std::vector< std::tuple< float, float, float > > > selectBarByA;
 
     explicit Statements( rodbc::Connection& conn )
-    : createFoo{ conn, "foo", { "x", "y", "z" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    : foo{ conn, "foo", { "x", "y", "z" } }
     , createBar{ conn, "bar", { "a", "b", "c" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
-    , insertFoo{ conn, "INSERT INTO foo (x, y, z) VALUES (?, ?, ?)" }
-    , selectAllFoo{ conn, "SELECT x, y, z FROM foo" }
     , insertBar{ conn, "INSERT INTO bar (a, b, c) VALUES (?, ?, ?)" }
     , selectBarByA{ conn, "SELECT a, b, c FROM bar WHERE a < ?", 128 }
     {
+        foo.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
     }
 };
 
@@ -266,14 +262,7 @@ void DatabaseImpl::insertFoo( Transaction& transaction, const Foo& foo )
 {
     withLease( transaction, [&]( Statements& stmts )
     {
-        auto& stmt = stmts.insertFoo;
-        auto& params = stmt.params();
-
-        std::get< 0 >( params ) = foo.x;
-        std::get< 1 >( params ) = foo.y;
-        std::get< 2 >( params ) = foo.z;
-
-        stmt.exec();
+        stmts.foo.insert( std::make_tuple( foo.x, foo.y, foo.z ) );
     } );
 }
 
@@ -283,19 +272,16 @@ std::vector< Foo > DatabaseImpl::selectAllFoo( Transaction& transaction )
 
     withLease( transaction, [&]( Statements& stmts )
     {
-        auto& stmt = stmts.selectAllFoo;
-        const auto& cols = stmt.cols();
+        const auto rows = stmts.foo.selectAll();
 
-        stmt.exec();
-
-        while ( stmt.fetch() )
+        for ( const auto& row : rows )
         {
             foos.emplace_back();
             auto& foo = foos.back();
 
-            foo.x = std::get< 0 >( cols );
-            foo.y = std::get< 1 >( cols );
-            foo.z = std::get< 2 >( cols );
+            foo.x = std::get< 0 >( row );
+            foo.y = std::get< 1 >( row );
+            foo.z = std::get< 2 >( row );
         }
     } );
 

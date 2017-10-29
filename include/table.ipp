@@ -65,90 +65,94 @@ struct ColumnConstraintInserter
     }
 };
 
-void dropTableIfExists(
+void create(
     Connection& conn,
-    const char* const tableName
-);
-
-void createTable(
-    Connection& conn,
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize,
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns,
     const char* const* const columnTypes, const std::size_t* const columnSizes, const char* const* const columnConstraints,
     const std::initializer_list< std::size_t >& primaryKey,
     const bool temporary
 );
 
-std::string selectFrom(
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize,
+void drop(
+    Connection& conn,
+    const std::string& tableName,
+    const bool ifExists
+);
+
+std::string select(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns,
     const std::initializer_list< std::size_t >& primaryKey
 );
 
-std::string selectFrom(
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize
+std::string selectAll(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns
 );
 
-std::string insertInto(
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize
+std::string insert(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns
 );
 
-std::string updateSet(
-    const char* const tableName,
-    const char* const* const columnName, const std::size_t columnNamesSize,
+std::string update(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns,
     const std::initializer_list< std::size_t >& primaryKey
 );
 
-std::string deleteFrom(
-    const char* const tableName
+std::string delete_(
+    const std::string& tableName,
+    const std::string* const columnNames,
+    const std::initializer_list< std::size_t >& primaryKey
 );
 
-std::string deleteFrom(
-    const char* const tableName,
-    const char* const* const columnNames,
-    const std::initializer_list< std::size_t >& primaryKey
+std::string deleteAll(
+    const std::string& tableName
 );
 
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-struct Table< Columns, PrimaryKey... >::ColumnNames : std::array< const char*, detail::sizeOfColumns< Columns >() >
+template< typename... Values >
+inline Table< Columns, PrimaryKey... >::ColumnNames::ColumnNames( Values&&... values )
+: std::array< std::string, detail::sizeOfColumns< Columns >() >{ std::forward< Values >( values )... }
 {
-    template< typename... Values >
-    ColumnNames( Values&&... values )
-    : std::array< const char*, detail::sizeOfColumns< Columns >() >{ std::forward< Values >( values )... }
-    {
-        static_assert( detail::sizeOfColumns< Columns >() == sizeof... ( Values ), "Number of columns and column names must be equal." );
-    }
-};
+    static_assert( detail::sizeOfColumns< Columns >() == sizeof... ( Values ), "Number of columns and column names must be equal." );
+}
 
 template< typename Columns, std::size_t... PrimaryKey >
-inline Table< Columns, PrimaryKey... >::Create::Create( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const unsigned flags )
+inline Table< Columns, PrimaryKey... >::Table( Connection& conn, std::string name, ColumnNames columnNames )
+: conn_{ conn }
+, name_{ std::move( name ) }
+, columnNames_{ std::move( columnNames ) }
 {
-    using namespace detail;
+}
 
-    const auto columns = sizeOfColumns< Columns >();
+template< typename Columns, std::size_t... PrimaryKey >
+inline void Table< Columns, PrimaryKey... >::create( const unsigned flags )
+{
+    const auto columns = detail::sizeOfColumns< Columns >();
 
     const char* columnTypes[ columns ];
-    forEachColumn< Columns >( ColumnTypeInserter{ columnTypes } );
+    detail::forEachColumn< Columns >( detail::ColumnTypeInserter{ columnTypes } );
 
     std::size_t columnSizes[ columns ];
-    forEachColumn< Columns >( ColumnSizeInserter{ columnSizes } );
+    detail::forEachColumn< Columns >( detail::ColumnSizeInserter{ columnSizes } );
 
     const char* columnConstraints[ columns ];
-    forEachColumn< Columns >( ColumnConstraintInserter{ columnConstraints } );
+    detail::forEachColumn< Columns >( detail::ColumnConstraintInserter{ columnConstraints } );
 
     if ( flags & DROP_TABLE_IF_EXISTS )
     {
-        dropTableIfExists( conn, tableName );
+        detail::drop( conn_, name_, true );
     }
 
-    createTable(
-        conn,
-        tableName,
-        columnNames.data(), columnNames.size(),
+    detail::create(
+        conn_,
+        name_,
+        columnNames_.data(), columnNames_.size(),
         columnTypes, columnSizes, columnConstraints,
         { PrimaryKey... },
         flags & TEMPORARY_TABLE
@@ -156,67 +160,111 @@ inline Table< Columns, PrimaryKey... >::Create::Create( Connection& conn, const 
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-Table< Columns, PrimaryKey... >::Table( Connection& conn, const char* const tableName, const ColumnNames& columnNames )
-: select_{ conn, detail::selectFrom( tableName, columnNames.data(), columnNames.size(), { PrimaryKey... } ).c_str() }
-, selectAll_{ conn, detail::selectFrom( tableName, columnNames.data(), columnNames.size() ).c_str() }
-, insert_{ conn, detail::insertInto( tableName, columnNames.data(), columnNames.size() ).c_str() }
-, update_{ conn, detail::updateSet( tableName, columnNames.data(), columnNames.size(), { PrimaryKey... } ).c_str() }
-, erase_{ conn, detail::deleteFrom( tableName, columnNames.data(), { PrimaryKey... } ).c_str() }
+inline void Table< Columns, PrimaryKey... >::drop()
 {
+    detail::drop( conn_, name_, false );
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-boost::optional< Columns > Table< Columns, PrimaryKey... >::select( const PrimaryKeyColumns& primaryKey ) const
+inline boost::optional< Columns > Table< Columns, PrimaryKey... >::select( const ColumnAt< PrimaryKey >&... primaryKey ) const
 {
-    select_.params() = primaryKey;
+    if ( !select_ )
+    {
+        select_.emplace( conn_, detail::select( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ).c_str() );
+    }
 
-    select_.exec();
+    select_->params() = std::forward_as_tuple( primaryKey... );
 
-    if ( !select_.fetch() )
+    select_->exec();
+
+    if ( !select_->fetch() )
     {
         return boost::none;
     }
 
-    return select_.cols();
+    return select_->cols();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-std::vector< Columns > Table< Columns, PrimaryKey... >::selectAll() const
+inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectAll() const
 {
     std::vector< Columns > rows;
 
-    selectAll_.exec();
-
-    while ( selectAll_.fetch() )
+    if ( !selectAll_ )
     {
-        rows.push_back( selectAll_.cols() );
+        selectAll_.emplace( conn_, detail::selectAll( name_, columnNames_.data(), columnNames_.size() ).c_str() );
+    }
+
+    selectAll_->exec();
+
+    while ( selectAll_->fetch() )
+    {
+        rows.push_back( selectAll_->cols() );
     }
 
     return rows;
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-void Table< Columns, PrimaryKey... >::insert( const Columns& row )
+inline void Table< Columns, PrimaryKey... >::insert( const Columns& row )
 {
-    insert_.params() = row;
+    if ( !insert_ )
+    {
+        insert_.emplace( conn_, detail::insert( name_, columnNames_.data(), columnNames_.size() ).c_str() );
+    }
 
-    insert_.exec();
+    insert_->params() = row;
+
+    insert_->exec();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-void Table< Columns, PrimaryKey... >::update( const PrimaryKeyColumns& primaryKey, const Columns& row )
+inline void Table< Columns, PrimaryKey... >::update( const Columns& row )
 {
-    update_.params() = std::tie( row, primaryKey );
-
-    update_.exec();
+    update_( row, std::get< PrimaryKey >( row )... );
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-void Table< Columns, PrimaryKey... >::erase( const PrimaryKeyColumns& primaryKey )
+inline void Table< Columns, PrimaryKey... >::update_( const Columns& row, const ColumnAt< PrimaryKey >&... primaryKey )
 {
-    erase_.params() = primaryKey;
+    if ( !update__ )
+    {
+        update__.emplace( conn_, detail::update( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ).c_str() );
+    }
 
-    erase_.exec();
+    update__->params() = std::forward_as_tuple( row, primaryKey... );
+
+    update__->exec();
+}
+
+template< typename Columns, std::size_t... PrimaryKey >
+inline void Table< Columns, PrimaryKey... >::delete_( const ColumnAt< PrimaryKey >&... primaryKey )
+{
+    if ( !delete__ )
+    {
+        delete__.emplace( conn_, detail::delete_( name_, columnNames_.data(), { PrimaryKey... } ).c_str() );
+    }
+
+    delete__->params() = std::forward_as_tuple( primaryKey... );
+
+    delete__->exec();
+}
+
+template< typename Columns, std::size_t... PrimaryKey >
+inline void Table< Columns, PrimaryKey... >::deleteAll()
+{
+    if ( !deleteAll_ )
+    {
+        deleteAll_.emplace( conn_, detail::deleteAll( name_, columnNames_.data(), { PrimaryKey... } ).c_str() );
+    }
+
+    deleteAll_->exec();
+}
+
+template< typename Columns, std::size_t... PrimaryKey >
+inline CreateTable< Columns, PrimaryKey... >::CreateTable( Connection& conn, const std::string& name, const typename Table::ColumnNames& columnNames, const unsigned flags )
+{
+    Table{ conn, name, columnNames }.create( flags );
 }
 
 }

@@ -32,13 +32,16 @@ template< typename StagedParams, typename Params, typename Cols, typename Stagin
 class StagedStatement
 {
 private:
-    using StagingTable = Table< std::tuple< StagingIndex, StagedParams >, 0 >;
-    using StagingColumns = typename StagingTable::Columns;
-    using StagingColumnNames = typename StagingTable::ColumnNames;
-    using CreateStagingTable = typename StagingTable::Create;
+    using CreateStagingTable = CreateTable< std::tuple< StagingIndex, StagedParams >, 0 >;
+    using StagingTableColumns = typename CreateStagingTable::Table::Columns;
+    using StagingTableColumnNames = typename CreateStagingTable::Table::ColumnNames;
 
 public:
-    StagedStatement( Connection& conn, const char* const stagingTableName, const StagingColumnNames& stagingColumnNames, const char* const stmt );
+    StagedStatement(
+        Connection& conn,
+        const std::string& stagingTableName, const StagingTableColumnNames& stagingTableColumnNames,
+        const char* const stmt
+    );
 
     void resizeStagedParams( const StagingIndex size );
     StagedParams& stagedParams( const StagingIndex index );
@@ -53,7 +56,7 @@ public:
 private:
     CreateStagingTable createStagingTable_;
     TypedStatement< std::tuple<>, std::tuple<> > deleteFromStagingTable_;
-    TypedStatement< std::vector< StagingColumns >, std::tuple<> > insertIntoStagingTable_;
+    TypedStatement< std::vector< StagingTableColumns >, std::tuple<> > insertIntoStagingTable_;
     TypedStatement< Params, Cols > stmt_;
 };
 

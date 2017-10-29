@@ -29,22 +29,10 @@ namespace rodbc
 namespace detail
 {
 
-void dropTableIfExists(
+void create(
     Connection& conn,
-    const char* const tableName
-)
-{
-    std::ostringstream stmt;
-
-    stmt << "DROP TABLE IF EXISTS " << tableName;
-
-    Statement{ conn, stmt.str().c_str() }.exec();
-}
-
-void createTable(
-    Connection& conn,
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize,
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns,
     const char* const* const columnTypes, const std::size_t* const columnSizes, const char* const* const columnConstraints,
     const std::initializer_list< std::size_t >& primaryKey,
     const bool temporary
@@ -61,7 +49,7 @@ void createTable(
 
     stmt << "TABLE " << tableName << " (";
 
-    for ( std::size_t column = 0; column != columnNamesSize; ++column )
+    for ( std::size_t column = 0; column != numberOfColumns; ++column )
     {
         if ( column != 0 )
         {
@@ -81,7 +69,7 @@ void createTable(
         }
     }
 
-    if ( primaryKey.size() != 0 )
+    if ( primaryKey.size() )
     {
         stmt << ", PRIMARY KEY (";
 
@@ -103,9 +91,29 @@ void createTable(
     Statement{ conn, stmt.str().c_str() }.exec();
 }
 
-std::string selectFrom(
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize,
+void drop(
+    Connection& conn,
+    const std::string& tableName,
+    const bool ifExists
+)
+{
+    std::ostringstream stmt;
+
+    stmt << "DROP TABLE ";
+
+    if ( ifExists )
+    {
+        stmt << "IF EXISTS ";
+    }
+
+    stmt << tableName;
+
+    Statement{ conn, stmt.str().c_str() }.exec();
+}
+
+std::string select(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns,
     const std::initializer_list< std::size_t >& primaryKey
 )
 {
@@ -113,7 +121,7 @@ std::string selectFrom(
 
     stmt << "SELECT ";
 
-    for ( std::size_t column = 0; column != columnNamesSize; ++column )
+    for ( std::size_t column = 0; column != numberOfColumns; ++column )
     {
         if ( column != 0 )
         {
@@ -138,16 +146,16 @@ std::string selectFrom(
     return stmt.str();
 }
 
-std::string selectFrom(
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize
+std::string selectAll(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns
 )
 {
     std::ostringstream stmt;
 
     stmt << "SELECT ";
 
-    for ( std::size_t column = 0; column != columnNamesSize; ++column )
+    for ( std::size_t column = 0; column != numberOfColumns; ++column )
     {
         if ( column != 0 )
         {
@@ -162,13 +170,16 @@ std::string selectFrom(
     return stmt.str();
 }
 
-std::string insertInto( const char* const tableName, const char* const* const columnNames, const std::size_t columnNamesSize )
+std::string insert(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns
+)
 {
     std::ostringstream stmt;
 
     stmt << "INSERT INTO " << tableName << " (";
 
-    for ( std::size_t column = 0; column != columnNamesSize; ++column )
+    for ( std::size_t column = 0; column != numberOfColumns; ++column )
     {
         if ( column != 0 )
         {
@@ -180,7 +191,7 @@ std::string insertInto( const char* const tableName, const char* const* const co
 
     stmt << ") VALUES (";
 
-    for ( std::size_t column = 0; column != columnNamesSize; ++column )
+    for ( std::size_t column = 0; column != numberOfColumns; ++column )
     {
         if ( column != 0 )
         {
@@ -195,9 +206,9 @@ std::string insertInto( const char* const tableName, const char* const* const co
     return stmt.str();
 }
 
-std::string updateSet(
-    const char* const tableName,
-    const char* const* const columnNames, const std::size_t columnNamesSize,
+std::string update(
+    const std::string& tableName,
+    const std::string* const columnNames, const std::size_t numberOfColumns,
     const std::initializer_list< std::size_t >& primaryKey
 )
 {
@@ -205,7 +216,7 @@ std::string updateSet(
 
     stmt << "UPDATE " << tableName << " SET ";
 
-    for ( std::size_t column = 0; column != columnNamesSize; ++column )
+    for ( std::size_t column = 0; column != numberOfColumns; ++column )
     {
         if ( column != 0 )
         {
@@ -230,18 +241,9 @@ std::string updateSet(
     return stmt.str();
 }
 
-std::string deleteFrom( const char* const tableName )
-{
-    std::ostringstream stmt;
-
-    stmt << "DELETE FROM " << tableName;
-
-    return stmt.str();
-}
-
-std::string deleteFrom(
-    const char* const tableName,
-    const char* const* const columnNames,
+std::string delete_(
+    const std::string& tableName,
+    const std::string* const columnNames,
     const std::initializer_list< std::size_t >& primaryKey
 )
 {
@@ -262,5 +264,17 @@ std::string deleteFrom(
     return stmt.str();
 }
 
+std::string deleteAll(
+    const std::string& tableName
+)
+{
+    std::ostringstream stmt;
+
+    stmt << "DELETE FROM " << tableName;
+
+    return stmt.str();
 }
+
+}
+
 }

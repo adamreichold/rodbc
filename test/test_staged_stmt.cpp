@@ -28,25 +28,15 @@ BOOST_FIXTURE_TEST_SUITE( stagedStmt, Fixture )
 
 BOOST_AUTO_TEST_CASE( canSelectByJoiningStagingTable )
 {
-    rodbc::Table< std::tuple< int, int, int >, 0, 1 >::Create{
-        conn, "tbl", { "a", "b", "c" },
-        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
+    rodbc::Table< std::tuple< int, int, int >, 0, 1 > tbl{
+        conn, "tbl", { "a", "b", "c" }
     };
 
-    rodbc::TypedStatement< std::tuple< int, int, int >, std::tuple<> > insertStmt{
-        conn, "INSERT INTO tbl (a, b, c) VALUES (?, ?, ?)"
-    };
+    tbl.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
 
     for ( int index = 0; index < 128; ++index )
     {
-        auto& stmt = insertStmt;
-        auto& params = stmt.params();
-
-        std::get< 0 >( params ) = index;
-        std::get< 1 >( params ) = index * index;
-        std::get< 2 >( params ) = index * index * index;
-
-        stmt.exec();
+        tbl.insert( std::make_tuple( index, index * index, index * index * index ) );
     }
 
     rodbc::StagedStatement< std::tuple< int, int >, std::tuple<>, std::tuple< std::int32_t, int >, std::int16_t > selectStmt{

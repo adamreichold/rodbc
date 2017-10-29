@@ -30,10 +30,10 @@ struct Fixture
 };
 
 template< typename Column >
-struct CreateSimpleTable : rodbc::Table< std::tuple< Column > >::Create
+struct CreateSimpleTable : rodbc::CreateTable< std::tuple< Column > >
 {
     CreateSimpleTable( rodbc::Connection& conn )
-    : rodbc::Table< std::tuple< Column > >::Create{ conn, "tbl", { "col" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
+    : rodbc::CreateTable< std::tuple< Column > >{ conn, "tbl", { "col" }, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE }
     {
     }
 };

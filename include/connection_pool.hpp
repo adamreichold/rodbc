@@ -106,7 +106,7 @@ class ConnectionPool : private ConnectionPoolBase, private ConnectionPoolImpl
 {
 public:
     template< typename... Args >
-    explicit ConnectionPool( const char* const connStr, Args&&... args );
+    explicit ConnectionPool( std::string connStr, Args&&... args );
 
     class Lease : private ConnectionPoolImpl::LeaseImpl
     {

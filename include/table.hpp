@@ -35,7 +35,10 @@ namespace detail
 {
 
 template< typename Columns, std::size_t Index >
-using ColumnAt = typename boost::mpl::at< boost::fusion::flatten_view< Columns >, boost::mpl::integral_c< std::size_t, Index > >::type;
+using ColumnAt = typename boost::mpl::at<
+    boost::fusion::flatten_view< Columns >,
+    boost::mpl::integral_c< std::size_t, Index >
+>::type;
 
 template< typename Columns >
 inline constexpr std::size_t sizeOfColumns()
@@ -49,31 +52,7 @@ inline void forEachColumn( Action action )
     boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
 }
 
-template< typename Type >
-struct IsNullable : std::false_type
-{
-};
-
-template< typename Type >
-struct IsNullable< Nullable< Type > > : std::true_type
-{
-};
-
-template< typename Columns >
-inline constexpr bool isValidPrimaryKey()
-{
-    return true;
 }
-
-template< typename Columns, std::size_t Index, std::size_t... Indices >
-inline constexpr bool isValidPrimaryKey()
-{
-    return sizeOfColumns< Columns >() > Index && !IsNullable< ColumnAt< Columns, Index > >::value && isValidPrimaryKey< Columns, Indices... >();
-}
-
-}
-
-class Connection;
 
 constexpr unsigned DROP_TABLE_IF_EXISTS = 1 << 0;
 constexpr unsigned TEMPORARY_TABLE = 1 << 1;
@@ -84,37 +63,61 @@ constexpr unsigned TEMPORARY_TABLE = 1 << 1;
 template< typename Columns_, std::size_t... PrimaryKey >
 class Table
 {
-    static_assert( detail::isValidPrimaryKey< Columns_, PrimaryKey... >(), "Primary key column indices must be valid." );
-
 public:
     using Columns = Columns_;
-    using PrimaryKeyColumns = std::tuple< detail::ColumnAt< Columns_, PrimaryKey >... >;
 
-    struct ColumnNames;
-
-public:
-    struct Create
+    struct ColumnNames : std::array< std::string, detail::sizeOfColumns< Columns >() >
     {
-        Create( Connection& conn, const char* const tableName, const ColumnNames& columnNames, const unsigned flags = 0 );
+        template< typename... Values >
+        ColumnNames( Values&&... values );
     };
 
-public:
-    Table( Connection& conn, const char* const tableName, const ColumnNames& columnNames );
+    template< std::size_t Index >
+    using ColumnAt = detail::ColumnAt< Columns, Index >;
 
-    boost::optional< Columns > select( const PrimaryKeyColumns& primaryKey ) const;
+public:
+    Table( Connection& conn, std::string name, ColumnNames columnNames );
+
+    void create( const unsigned flags = 0 );
+    void drop();
+
+    boost::optional< Columns > select( const ColumnAt< PrimaryKey >&... primaryKey ) const;
     std::vector< Columns > selectAll() const;
 
     void insert( const Columns& row );
-    void update( const PrimaryKeyColumns& primaryKey, const Columns& row );
-    void erase( const PrimaryKeyColumns& primaryKey );
+
+    void update( const Columns& row );
+    void update_( const Columns& row, const ColumnAt< PrimaryKey >&... primaryKey );
+
+    void delete_( const ColumnAt< PrimaryKey >&... primaryKey );
+    void deleteAll();
 
 private:
-    mutable TypedStatement< PrimaryKeyColumns, Columns > select_;
-    mutable TypedStatement< std::tuple<>, Columns > selectAll_;
+    Connection& conn_;
 
-    TypedStatement< Columns, std::tuple<> > insert_;
-    TypedStatement< std::tuple< Columns, PrimaryKeyColumns >, std::tuple<> > update_;
-    TypedStatement< PrimaryKeyColumns, std::tuple<> > erase_;
+    const std::string name_;
+    const ColumnNames columnNames_;
+
+    mutable boost::optional< TypedStatement< std::tuple< ColumnAt< PrimaryKey >... >, Columns > > select_;
+    mutable boost::optional< TypedStatement< std::tuple<>, Columns > > selectAll_;
+
+    boost::optional< TypedStatement< Columns, std::tuple<> > > insert_;
+
+    boost::optional< TypedStatement< std::tuple< Columns, ColumnAt< PrimaryKey >... >, std::tuple<> > > update__;
+
+    boost::optional< TypedStatement< std::tuple< ColumnAt< PrimaryKey >... >, std::tuple<> > > delete__;
+    boost::optional< TypedStatement< std::tuple<>, std::tuple<> > > deleteAll_;
+};
+
+/**
+ * @brief The CreateTable struct template
+ */
+template< typename Columns, std::size_t... PrimaryKey >
+struct CreateTable
+{
+    using Table = rodbc::Table< Columns, PrimaryKey... >;
+
+    CreateTable( Connection& conn, const std::string& name, const typename Table::ColumnNames& columnNames, const unsigned flags = 0 );
 };
 
 }

@@ -30,32 +30,25 @@ BOOST_FIXTURE_TEST_SUITE( table, Fixture )
 
 BOOST_AUTO_TEST_CASE( canCrudSingleRow )
 {
-    using Table = rodbc::Table< std::tuple< int, rodbc::String< 32 > >, 0 >;
-
-    const char* const tblName{ "tbl" };
-    const Table::ColumnNames colNames{ "pk", "col" };
-
-    Table::Create{
-        conn, tblName, colNames, rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
+    rodbc::Table< std::tuple< int, rodbc::String< 32 > >, 0 > table{
+        conn, "tbl", { "pk", "col" }
     };
 
-    Table table{
-        conn, tblName, colNames
-    };
+    BOOST_CHECK_NO_THROW( table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE ) );
 
-    BOOST_CHECK( !table.select( std::make_tuple( 0 ) ).is_initialized() );
+    BOOST_CHECK( !table.select( 0 ).is_initialized() );
 
     BOOST_CHECK_NO_THROW( table.insert( std::make_tuple( 0, rodbc::String< 32 >{ "foobar" } ) ) );
 
-    BOOST_CHECK_EQUAL( std::string{ "foobar" }, std::get< 1 >( *table.select( std::make_tuple( 0 ) ) ).str() );
+    BOOST_CHECK_EQUAL( std::string{ "foobar" }, std::get< 1 >( *table.select( 0 ) ).str() );
 
-    BOOST_CHECK_NO_THROW( table.update( std::make_tuple( 0 ), std::make_tuple( 0, rodbc::String< 32 >( "barfoo" ) ) ) );
+    BOOST_CHECK_NO_THROW( table.update( std::make_tuple( 0, rodbc::String< 32 >( "barfoo" ) ) ) );
 
-    BOOST_CHECK_EQUAL( std::string{ "barfoo" }, std::get< 1 >( *table.select( std::make_tuple( 0 ) ) ).str() );
+    BOOST_CHECK_EQUAL( std::string{ "barfoo" }, std::get< 1 >( *table.select( 0 ) ).str() );
 
-    BOOST_CHECK_NO_THROW( table.erase( std::make_tuple( 0 ) ) );
+    BOOST_CHECK_NO_THROW( table.delete_( 0 ) );
 
-    BOOST_CHECK( !table.select( std::make_tuple( 0 ) ).is_initialized() );
+    BOOST_CHECK( !table.select( 0 ).is_initialized() );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

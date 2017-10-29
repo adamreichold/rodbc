@@ -51,15 +51,15 @@ BOOST_FIXTURE_TEST_SUITE( exception, Fixture )
 
 BOOST_AUTO_TEST_CASE( canDetectConstraintViolation )
 {
-    rodbc::Table< std::tuple< int >, 0 >::Create{
+    rodbc::CreateTable< std::tuple< int >, 0 >{
         conn, "tbl", { "col" },
         rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
     };
 
     rodbc::Statement stmt{ conn, "INSERT INTO tbl (col) VALUES (?)" };
 
-    const int n = 1;
-    stmt.bindParam( n );
+    const int col = 1;
+    stmt.bindParam( col );
 
     BOOST_CHECK_NO_THROW( stmt.exec() );
     BOOST_CHECK_EXCEPTION( stmt.exec(), rodbc::Exception, std::mem_fn( &rodbc::Exception::isConstraintViolation ) );
