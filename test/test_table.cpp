@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE( canCrudSingleRow )
         conn, "tbl", { "pk", "col" }
     };
 
-    BOOST_CHECK_NO_THROW( table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE ) );
+    table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
 
     BOOST_CHECK( !table.select( 0 ).is_initialized() );
 
@@ -49,6 +49,65 @@ BOOST_AUTO_TEST_CASE( canCrudSingleRow )
     BOOST_CHECK_NO_THROW( table.delete_( 0 ) );
 
     BOOST_CHECK( !table.select( 0 ).is_initialized() );
+}
+
+BOOST_AUTO_TEST_CASE( canUseSubtypeForExtension )
+{
+    using Columns = std::tuple< int, rodbc::String< 32 > >;
+
+    class Table : public rodbc::Table< Columns, 0 >
+    {
+    public:
+        Table( rodbc::Connection& conn )
+        : rodbc::Table< Columns, 0 >{ conn, "tbl", { "pk", "col" } }
+        {
+        }
+
+        std::vector< Columns > selectByPkLessThan( const int pk ) const
+        {
+            std::vector< Columns > rows;
+
+            if ( !selectByPkLessThan_ )
+            {
+                selectByPkLessThan_.emplace( conn_, "SELECT pk, col FROM tbl WHERE pk < ? ORDER BY pk" );
+            }
+
+            selectByPkLessThan_->params() = std::forward_as_tuple( pk );
+
+            selectByPkLessThan_->exec();
+
+            while ( selectByPkLessThan_->fetch() )
+            {
+                rows.push_back( selectByPkLessThan_->cols() );
+            }
+
+            return rows;
+        }
+
+    private:
+        mutable boost::optional< rodbc::TypedStatement< std::tuple< int >, Columns > > selectByPkLessThan_;
+    };
+
+    Table table{ conn };
+
+    table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
+
+    for ( int index = 0; index < 128; ++index )
+    {
+        table.insert( std::make_tuple( index, rodbc::String< 32 >{ std::to_string( index ) }) );
+    }
+
+    const auto rows = table.selectByPkLessThan( 64 );
+
+    BOOST_CHECK_EQUAL( 64, rows.size() );
+
+    for ( int index = 0; index < 64; ++index )
+    {
+        const auto& row = rows[ index ];
+
+        BOOST_CHECK_EQUAL( index, std::get< 0 >( row ) );
+        BOOST_CHECK_EQUAL( std::to_string( index ), std::get< 1 >( row ).str() );
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

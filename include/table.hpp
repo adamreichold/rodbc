@@ -92,12 +92,13 @@ public:
     void delete_( const ColumnAt< PrimaryKey >&... primaryKey );
     void deleteAll();
 
-private:
+protected:
     Connection& conn_;
 
     const std::string name_;
     const ColumnNames columnNames_;
 
+private:
     mutable boost::optional< TypedStatement< std::tuple< ColumnAt< PrimaryKey >... >, Columns > > select_;
     mutable boost::optional< TypedStatement< std::tuple<>, Columns > > selectAll_;
 
