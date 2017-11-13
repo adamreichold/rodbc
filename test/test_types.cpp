@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 */
-#include "types.hpp"
+#include "types.ipp"
 
 #include "statement.hpp"
 
@@ -27,6 +27,63 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/fusion/include/std_tuple.hpp>
 
 #include <boost/test/unit_test.hpp>
+
+BOOST_AUTO_TEST_SUITE( number )
+
+BOOST_AUTO_TEST_CASE( canConstructSmallNumber )
+{
+    const boost::multiprecision::cpp_int smallNumber{ 123 };
+
+    const rodbc::Number< 5 > number{ smallNumber };
+    BOOST_CHECK_EQUAL( smallNumber, number.value() );
+}
+
+BOOST_AUTO_TEST_CASE( canConstructLargeNumber )
+{
+    const boost::multiprecision::cpp_int largeNumber{ "12345678901234567890123456789012345678901234567890" };
+
+    const rodbc::Number< 100 > number{ largeNumber };
+    BOOST_CHECK_EQUAL( largeNumber, number.value() );
+}
+
+BOOST_AUTO_TEST_CASE( canDetectThatNumberIsTooLarge )
+{
+    const boost::multiprecision::cpp_int number{ "1234567890" };
+    BOOST_CHECK_THROW( rodbc::Number< 5 >{ number }, std::range_error );
+}
+
+BOOST_FIXTURE_TEST_CASE( canInsertAndSelectNumber, Fixture )
+{
+    rodbc::CreateTable< std::tuple< rodbc::Number< 10 > >, 0 >{
+        conn, "tbl", { "col" },
+        rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE
+    };
+
+    const boost::multiprecision::cpp_int number{ "1234567890" };
+
+    {
+        rodbc::Statement stmt{ conn, "INSERT INTO tbl (col) VALUES (?)" };
+
+        const rodbc::Number< 10 > col{ number };
+        stmt.bindParam( col );
+
+        BOOST_CHECK_NO_THROW( stmt.exec() );
+    }
+
+    {
+        rodbc::Statement stmt{ conn, "SELECT col FROM tbl" };
+
+        rodbc::Number< 10 > col;
+        stmt.bindCol( col );
+
+        BOOST_CHECK_NO_THROW( stmt.exec() );
+        BOOST_CHECK( stmt.fetch() );
+
+        BOOST_CHECK_EQUAL( number, col.value() );
+    }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE( timestamp )
 
