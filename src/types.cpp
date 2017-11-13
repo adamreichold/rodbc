@@ -23,10 +23,12 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <sql.h>
 #include <sqlext.h>
 
-#include <boost/format.hpp>
-#include <boost/functional/hash.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/conversion.hpp>
+#include <boost/format.hpp>
+#include <boost/functional/hash.hpp>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/stream.hpp>
 
 namespace rodbc
 {
@@ -69,6 +71,7 @@ const boost::format& format( const Timestamp& ts )
 }
 
 }
+
 namespace detail
 {
 
@@ -130,12 +133,28 @@ const char* c_str( char* const val, const long ind )
     }
 
     val[ ind ] = '\0';
+
     return val;
 }
 
 std::size_t hash( const char* const val, const long ind )
 {
     return ind < 0 ? 0 : boost::hash_range( val, val + ind );
+}
+
+void from_int(const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+{
+    boost::iostreams::array_sink sink{ str_val, str_len };
+    boost::iostreams::stream< boost::iostreams::array_sink > stream{ sink };
+
+    if ( stream << int_val )
+    {
+        str_ind = stream.tellp();
+    }
+    else
+    {
+        throw std::range_error{ str( boost::format{ "Value %s is too large for a number with %d digits." } % int_val.str() % str_len ) };
+    }
 }
 
 }

@@ -38,6 +38,8 @@ const char* c_str( char* const val, const long ind );
 
 std::size_t hash( const char* const val, const long ind );
 
+void from_int(const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind , const std::size_t str_len );
+
 }
 
 template< std::size_t Size >
@@ -100,7 +102,7 @@ inline bool String< Size >::isNull() const
 }
 
 template< std::size_t Size >
-void String< Size >::clear()
+inline void String< Size >::clear()
 {
     ind_ = -1;
 }
@@ -115,6 +117,18 @@ template< std::size_t Size >
 inline const char* String< Size >::c_str() const
 {
     return detail::c_str( const_cast< char* >( val_ ), ind_ );
+}
+
+template< std::size_t Size >
+inline const char* String< Size >::begin() const
+{
+    return val_;
+}
+
+template< std::size_t Size >
+inline const char* String< Size >::end() const
+{
+    return val_ + std::max( ind_, 0l );
 }
 
 template< std::size_t Size >
@@ -162,6 +176,44 @@ inline std::ostream& operator<< ( std::ostream& stream, const String< Size >& st
     }
 
     return stream;
+}
+
+template< std::size_t Size >
+inline Number< Size >::Number( const boost::multiprecision::cpp_int& val )
+{
+    detail::from_int( val, val_.val_, val_.ind_, Size );
+}
+
+template< std::size_t Size >
+inline Number< Size >& Number< Size >::operator= ( const boost::multiprecision::cpp_int& val )
+{
+    detail::from_int( val, val_.val_, val_.ind_, Size );
+
+    return *this;
+}
+
+template< std::size_t Size >
+inline bool Number< Size >::isNull() const
+{
+    return val_.isNull();
+}
+
+template< std::size_t Size >
+inline void Number< Size >::clear()
+{
+    val_.clear();
+}
+
+template< std::size_t Size >
+inline boost::multiprecision::cpp_int Number< Size >::value() const
+{
+    return boost::multiprecision::cpp_int{ val_.c_str() };
+}
+
+template< std::size_t Size >
+inline std::ostream& operator<< ( std::ostream& stream, const Number< Size >& number )
+{
+    return stream << number.val_;
 }
 
 template< typename Type >

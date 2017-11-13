@@ -20,6 +20,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
+#include <boost/multiprecision/cpp_int.hpp>
+
 #include <ctime>
 #include <functional>
 #include <stdexcept>
@@ -76,11 +78,15 @@ public:
     std::string str() const;
     const char* c_str() const;
 
+    const char* begin() const;
+    const char* end() const;
+
 private:
     char val_[ Size + 1 ];
     long ind_;
 
     friend class Statement;
+    template< std::size_t Size_ > friend class Number;
     template< std::size_t Size_ > friend bool operator== ( const String< Size_ >& lhs, const String< Size_ >& rhs );
     template< std::size_t Size_ > friend bool operator!= ( const String< Size_ >& lhs, const String< Size_ >& rhs );
     template< std::size_t Size_ > friend bool operator< ( const String< Size_ >& lhs, const String< Size_ >& rhs );
@@ -98,6 +104,36 @@ template< std::size_t Size > bool operator> ( const String< Size >& lhs, const S
 template< std::size_t Size > bool operator>= ( const String< Size >& lhs, const String< Size >& rhs );
 
 template< std::size_t Size > std::ostream& operator<< ( std::ostream& stream, const String< Size >& string );
+
+/**
+ * @brief The Number class template
+ */
+template< std::size_t Size >
+class Number
+{
+public:
+    Number() = default;
+
+    Number( const Number& ) = default;
+    Number& operator= ( const Number& ) = default;
+
+    explicit Number( const boost::multiprecision::cpp_int& );
+    Number& operator= ( const boost::multiprecision::cpp_int& );
+
+    bool isNull() const;
+    void clear();
+
+public:
+    boost::multiprecision::cpp_int value() const;
+
+private:
+    String< Size > val_;
+
+    friend class Statement;
+    template< std::size_t Size_ > friend std::ostream& operator<< ( std::ostream& stream, const Number< Size_ >& number );
+};
+
+template< std::size_t Size > std::ostream& operator<< ( std::ostream& stream, const Number< Size >& number );
 
 /**
  * @brief The Timestamp struct
