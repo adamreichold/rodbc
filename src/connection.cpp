@@ -183,6 +183,22 @@ void Connection::setIsolationLevel( const IsolationLevel isolationLevel )
     check( ::SQLSetConnectAttr( dbc_, SQL_TXN_ISOLATION, (SQLPOINTER) txnIsolation, 0 ), SQL_HANDLE_DBC, dbc_ );
 }
 
+bool Connection::readOnly() const
+{
+    SQLUINTEGER accessMode;
+
+    check( ::SQLGetConnectAttr( dbc_, SQL_ATTR_ACCESS_MODE, &accessMode, 0, nullptr ), SQL_HANDLE_DBC, dbc_ );
+
+    return accessMode == SQL_MODE_READ_ONLY;
+}
+
+void Connection::setReadOnly( const bool readOnly )
+{
+    const SQLULEN accessMode = readOnly ? SQL_MODE_READ_ONLY : SQL_MODE_READ_WRITE;
+
+    check( ::SQLSetConnectAttr( dbc_, SQL_ATTR_ACCESS_MODE, (SQLPOINTER) accessMode, 0 ), SQL_HANDLE_DBC, dbc_ );
+}
+
 bool Connection::isDead() const
 {
     SQLUINTEGER dead = SQL_CD_TRUE;

@@ -85,6 +85,9 @@ public:
     IsolationLevel isolationLevel() const;
     void setIsolationLevel( const IsolationLevel isolationLevel );
 
+    bool readOnly() const;
+    void setReadOnly( const bool readOnly );
+
     bool isDead() const;
 
 private:
