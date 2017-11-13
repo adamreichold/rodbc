@@ -202,7 +202,17 @@ Statement& Statement::doBindStringParam( const char* const data, const std::size
 
 Statement& Statement::doBindStringCol( char* const data, const std::size_t length, long* const indicator )
 {
-    return doBindCol( data, SQL_C_CHAR, sizeof ( char ) * length, indicator );
+    return doBindCol( data, SQL_C_CHAR, sizeof ( char ) * ( length + 1 ), indicator );
+}
+
+Statement& Statement::doBindNumberParam( const char* const data, const std::size_t length , const long* const indicator )
+{
+    return doBindParam( data, SQL_C_CHAR, SQL_NUMERIC, sizeof ( char ), length, indicator );
+}
+
+Statement& Statement::doBindNumberCol( char* const data, const std::size_t length, long* const indicator )
+{
+    return doBindCol( data, SQL_C_CHAR, sizeof ( char ) * ( length + 1 ), indicator );
 }
 
 void Statement::doBindParamArray( const std::size_t size, const std::size_t count )

@@ -81,6 +81,9 @@ public:
     template< std::size_t Size >
     Statement& bindParam( const String< Size >& param );
 
+    template< std::size_t Size >
+    Statement& bindParam( const Number< Size >& param );
+
     template< typename Params >
     void bindParamArray( const std::vector< Params >& params );
 
@@ -104,9 +107,6 @@ public:
 
     Statement& bindCol( Timestamp& col );
 
-    template< std::size_t Size >
-    Statement& bindCol( String< Size >& col );
-
     Statement& bindCol( Nullable< std::int8_t >& col );
     Statement& bindCol( Nullable< std::int16_t >& col );
     Statement& bindCol( Nullable< std::int32_t >& col );
@@ -125,7 +125,10 @@ public:
     Statement& bindCol( Nullable< Timestamp >& col );
 
     template< std::size_t Size >
-    Statement& bindCol( Nullable< String< Size > >& col );
+    Statement& bindCol( String< Size >& col );
+
+    template< std::size_t Size >
+    Statement& bindCol( Number< Size >& col );
 
     template< typename Cols >
     void bindColArray( std::vector< Cols >& cols, long& rowsFetched );
@@ -183,6 +186,9 @@ private:
     Statement& doBindStringParam( const char* const data, const std::size_t length, const long* const indicator );
     Statement& doBindStringCol( char* const data, const std::size_t length, long* const indicator );
 
+    Statement& doBindNumberParam( const char* const data, const std::size_t length, const long* const indicator );
+    Statement& doBindNumberCol( char* const data, const std::size_t length, long* const indicator );
+
     void doBindParamArray( const std::size_t size, const std::size_t count );
     void doBindColArray( const std::size_t size, const std::size_t count, long* const rowsFetched );
 
@@ -205,6 +211,18 @@ template< std::size_t Size >
 inline Statement& Statement::bindCol( String< Size >& col )
 {
     return doBindStringCol( col.val_, Size, &col.ind_ );
+}
+
+template< std::size_t Size >
+inline Statement& Statement::bindParam( const Number< Size >& param )
+{
+    return doBindNumberParam( param.val_.val_, Size, &param.val_.ind_ );
+}
+
+template< std::size_t Size >
+inline Statement& Statement::bindCol( Number< Size >& col )
+{
+    return doBindNumberCol( col.val_.val_, Size, &col.val_.ind_ );
 }
 
 template< typename Params >
