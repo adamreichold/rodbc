@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE( canConstructInt64 )
     const std::int64_t integer{ -23 };
 
     const rodbc::Number< 5 > number{ integer };
-    BOOST_CHECK_EQUAL( integer, number.to_int64() );
+    BOOST_CHECK_EQUAL( integer, number.toInt64() );
 }
 
 BOOST_AUTO_TEST_CASE( canConstructUInt64 )
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE( canConstructUInt64 )
     const std::uint64_t integer{ 42 };
 
     const rodbc::Number< 5 > number{ integer };
-    BOOST_CHECK_EQUAL( integer, number.to_uint64() );
+    BOOST_CHECK_EQUAL( integer, number.toUInt64() );
 }
 
 BOOST_FIXTURE_TEST_CASE( canInsertAndSelectNumber, Fixture )
@@ -109,13 +109,13 @@ constexpr auto epoch = rodbc::Timestamp{
 
 BOOST_AUTO_TEST_CASE( canConvertTheEpoch )
 {
-    BOOST_CHECK( epoch == rodbc::from_time_t( 0 ) );
-    BOOST_CHECK_EQUAL( 0, to_time_t( epoch ) );
+    BOOST_CHECK( epoch == rodbc::fromTime_t( 0 ) );
+    BOOST_CHECK_EQUAL( 0, toTime_t( epoch ) );
 }
 
 BOOST_AUTO_TEST_CASE( canFormatTheEpoch )
 {
-    BOOST_CHECK_EQUAL( "1970-01-01T00:00:00.000Z", to_string( epoch ) );
+    BOOST_CHECK_EQUAL( "1970-01-01T00:00:00.000Z", toString( epoch ) );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

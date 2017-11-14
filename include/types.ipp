@@ -38,13 +38,13 @@ const char* c_str( char* const val, const long ind );
 
 std::size_t hash( const char* const val, const long ind );
 
-void from_int( const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind , const std::size_t str_len );
+void fromInt( const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind , const std::size_t str_len );
 
-void from_int64( const std::int64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len );
-void from_uint64( const std::uint64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len );
+void fromInt64( const std::int64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len );
+void fromUInt64( const std::uint64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len );
 
-std::int64_t to_int64( const char* const begin, const char* const end );
-std::uint64_t to_uint64( const char* const begin, const char* const end );
+std::int64_t toInt64( const char* const begin, const char* const end );
+std::uint64_t toUInt64( const char* const begin, const char* const end );
 
 }
 
@@ -187,13 +187,13 @@ inline std::ostream& operator<< ( std::ostream& stream, const String< Size >& st
 template< std::size_t Size >
 inline Number< Size >::Number( const boost::multiprecision::cpp_int& val )
 {
-    detail::from_int( val, val_.val_, val_.ind_, Size );
+    detail::fromInt( val, val_.val_, val_.ind_, Size );
 }
 
 template< std::size_t Size >
 inline Number< Size >& Number< Size >::operator= ( const boost::multiprecision::cpp_int& val )
 {
-    detail::from_int( val, val_.val_, val_.ind_, Size );
+    detail::fromInt( val, val_.val_, val_.ind_, Size );
 
     return *this;
 }
@@ -201,13 +201,13 @@ inline Number< Size >& Number< Size >::operator= ( const boost::multiprecision::
 template< std::size_t Size >
 inline Number< Size >::Number( const std::int64_t val )
 {
-    detail::from_int64( val, val_.val_, val_.ind_, Size );
+    detail::fromInt64( val, val_.val_, val_.ind_, Size );
 }
 
 template< std::size_t Size >
 inline Number< Size >& Number< Size >::operator= ( const std::int64_t val )
 {
-    detail::from_int64( val, val_.val_, val_.ind_, Size );
+    detail::fromInt64( val, val_.val_, val_.ind_, Size );
 
     return *this;
 }
@@ -215,13 +215,13 @@ inline Number< Size >& Number< Size >::operator= ( const std::int64_t val )
 template< std::size_t Size >
 inline Number< Size >::Number( const std::uint64_t val )
 {
-    detail::from_uint64( val, val_.val_, val_.ind_, Size );
+    detail::fromUInt64( val, val_.val_, val_.ind_, Size );
 }
 
 template< std::size_t Size >
 inline Number< Size >& Number< Size >::operator= ( const std::uint64_t val )
 {
-    detail::from_uint64( val, val_.val_, val_.ind_, Size );
+    detail::fromUInt64( val, val_.val_, val_.ind_, Size );
 
     return *this;
 }
@@ -245,15 +245,15 @@ inline boost::multiprecision::cpp_int Number< Size >::value() const
 }
 
 template< std::size_t Size >
-inline std::int64_t Number< Size >::to_int64() const
+inline std::int64_t Number< Size >::toInt64() const
 {
-    return detail::to_int64( val_.begin(), val_.end() );
+    return detail::toInt64( val_.begin(), val_.end() );
 }
 
 template< std::size_t Size >
-inline std::uint64_t Number< Size >::to_uint64() const
+inline std::uint64_t Number< Size >::toUInt64() const
 {
-    return detail::to_uint64( val_.begin(), val_.end() );
+    return detail::toUInt64( val_.begin(), val_.end() );
 }
 
 template< std::size_t Size >

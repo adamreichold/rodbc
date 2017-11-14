@@ -42,7 +42,7 @@ namespace
 {
 
 template< typename Integer, typename Generator >
-void from_integer( const Integer int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+void fromInteger( const Integer int_val, char* const str_val, long& str_ind, const std::size_t str_len )
 {
     boost::iostreams::array_sink sink{ str_val, str_len };
     boost::iostreams::stream< boost::iostreams::array_sink > stream{ sink };
@@ -59,7 +59,7 @@ void from_integer( const Integer int_val, char* const str_val, long& str_ind, co
 }
 
 template< typename Integer, typename Parser >
-Integer to_integer( const char* const begin, const char* const end )
+Integer toInteger( const char* const begin, const char* const end )
 {
     Integer result;
 
@@ -71,7 +71,7 @@ Integer to_integer( const char* const begin, const char* const end )
     return result;
 }
 
-Timestamp from_ptime( const boost::posix_time::ptime& ptime )
+Timestamp fromPTime( const boost::posix_time::ptime& ptime )
 {
     Timestamp ts;
 
@@ -89,7 +89,7 @@ Timestamp from_ptime( const boost::posix_time::ptime& ptime )
     return ts;
 }
 
-boost::posix_time::ptime to_ptime( const Timestamp& ts )
+boost::posix_time::ptime toPTime( const Timestamp& ts )
 {
     return {
         { static_cast< unsigned short >( ts.year ), ts.month, ts.day },
@@ -178,7 +178,7 @@ std::size_t hash( const char* const val, const long ind )
     return ind < 0 ? 0 : boost::hash_range( val, val + ind );
 }
 
-void from_int( const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+void fromInt( const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind, const std::size_t str_len )
 {
     boost::iostreams::array_sink sink{ str_val, str_len };
     boost::iostreams::stream< boost::iostreams::array_sink > stream{ sink };
@@ -193,24 +193,24 @@ void from_int( const boost::multiprecision::cpp_int& int_val, char* const str_va
     }
 }
 
-void from_int64( const std::int64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+void fromInt64( const std::int64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len )
 {
-    from_integer< std::int64_t, boost::spirit::karma::int_generator< std::int64_t > >( int_val, str_val, str_ind, str_len );
+    fromInteger< std::int64_t, boost::spirit::karma::int_generator< std::int64_t > >( int_val, str_val, str_ind, str_len );
 }
 
-void from_uint64( const std::uint64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+void fromUInt64( const std::uint64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len )
 {
-    from_integer< std::uint64_t, boost::spirit::karma::uint_generator< std::uint64_t > >( int_val, str_val, str_ind, str_len );
+    fromInteger< std::uint64_t, boost::spirit::karma::uint_generator< std::uint64_t > >( int_val, str_val, str_ind, str_len );
 }
 
-std::int64_t to_int64( const char* const begin, const char* const end )
+std::int64_t toInt64( const char* const begin, const char* const end )
 {
-    return to_integer< std::int64_t, boost::spirit::qi::int_parser< std::int64_t > >( begin, end );
+    return toInteger< std::int64_t, boost::spirit::qi::int_parser< std::int64_t > >( begin, end );
 }
 
-std::uint64_t to_uint64( const char* const begin, const char* const end )
+std::uint64_t toUInt64( const char* const begin, const char* const end )
 {
-    return to_integer< std::uint64_t, boost::spirit::qi::uint_parser< std::uint64_t > >( begin, end );
+    return toInteger< std::uint64_t, boost::spirit::qi::uint_parser< std::uint64_t > >( begin, end );
 }
 
 }
@@ -264,7 +264,7 @@ const char* Exception::what() const noexcept
 
 bool operator== ( const Timestamp& lhs, const Timestamp& rhs )
 {
-    return to_ptime( lhs ) == to_ptime( rhs );
+    return toPTime( lhs ) == toPTime( rhs );
 }
 
 bool operator!= ( const Timestamp& lhs, const Timestamp& rhs )
@@ -272,22 +272,22 @@ bool operator!= ( const Timestamp& lhs, const Timestamp& rhs )
     return !( lhs == rhs );
 }
 
-std::ostream& operator<<( std::ostream& stream, const Timestamp& ts )
+std::ostream& operator<< ( std::ostream& stream, const Timestamp& ts )
 {
     return stream << format( ts );
 }
 
-Timestamp from_time_t( const std::time_t time )
+Timestamp fromTime_t( const std::time_t time )
 {
-    return from_ptime( boost::posix_time::from_time_t( time ) );
+    return fromPTime( boost::posix_time::from_time_t( time ) );
 }
 
-std::time_t to_time_t( const Timestamp& ts )
+std::time_t toTime_t( const Timestamp& ts )
 {
-    return to_time_t( to_ptime( ts ) );
+    return to_time_t( toPTime( ts ) );
 }
 
-std::string to_string( const Timestamp& ts )
+std::string toString( const Timestamp& ts )
 {
     return str( format( ts ) );
 }

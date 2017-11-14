@@ -132,8 +132,8 @@ public:
 public:
     boost::multiprecision::cpp_int value() const;
 
-    std::int64_t to_int64() const;
-    std::uint64_t to_uint64() const;
+    std::int64_t toInt64() const;
+    std::uint64_t toUInt64() const;
 
 private:
     String< Size > val_;
@@ -164,9 +164,9 @@ bool operator!= ( const Timestamp& lhs, const Timestamp& rhs );
 
 std::ostream& operator<< ( std::ostream& stream, const Timestamp& ts );
 
-Timestamp from_time_t( const std::time_t time );
-std::time_t to_time_t( const Timestamp& ts );
-std::string to_string( const Timestamp& ts );
+Timestamp fromTime_t( const std::time_t time );
+std::time_t toTime_t( const Timestamp& ts );
+std::string toString( const Timestamp& ts );
 
 /**
  * @brief The Nullable class template
