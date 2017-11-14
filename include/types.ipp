@@ -38,7 +38,13 @@ const char* c_str( char* const val, const long ind );
 
 std::size_t hash( const char* const val, const long ind );
 
-void from_int(const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind , const std::size_t str_len );
+void from_int( const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind , const std::size_t str_len );
+
+void from_int64( const std::int64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len );
+void from_uint64( const std::uint64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len );
+
+std::int64_t to_int64( const char* const begin, const char* const end );
+std::uint64_t to_uint64( const char* const begin, const char* const end );
 
 }
 
@@ -193,6 +199,34 @@ inline Number< Size >& Number< Size >::operator= ( const boost::multiprecision::
 }
 
 template< std::size_t Size >
+inline Number< Size >::Number( const std::int64_t val )
+{
+    detail::from_int64( val, val_.val_, val_.ind_, Size );
+}
+
+template< std::size_t Size >
+inline Number< Size >& Number< Size >::operator= ( const std::int64_t val )
+{
+    detail::from_int64( val, val_.val_, val_.ind_, Size );
+
+    return *this;
+}
+
+template< std::size_t Size >
+inline Number< Size >::Number( const std::uint64_t val )
+{
+    detail::from_uint64( val, val_.val_, val_.ind_, Size );
+}
+
+template< std::size_t Size >
+inline Number< Size >& Number< Size >::operator= ( const std::uint64_t val )
+{
+    detail::from_uint64( val, val_.val_, val_.ind_, Size );
+
+    return *this;
+}
+
+template< std::size_t Size >
 inline bool Number< Size >::isNull() const
 {
     return val_.isNull();
@@ -208,6 +242,18 @@ template< std::size_t Size >
 inline boost::multiprecision::cpp_int Number< Size >::value() const
 {
     return boost::multiprecision::cpp_int{ val_.c_str() };
+}
+
+template< std::size_t Size >
+inline std::int64_t Number< Size >::to_int64() const
+{
+    return detail::to_int64( val_.begin(), val_.end() );
+}
+
+template< std::size_t Size >
+inline std::uint64_t Number< Size >::to_uint64() const
+{
+    return detail::to_uint64( val_.begin(), val_.end() );
 }
 
 template< std::size_t Size >
@@ -302,6 +348,18 @@ struct hash< rodbc::String< Size > >
     result_type operator() ( const argument_type& val ) const
     {
         return rodbc::detail::hash( val.val_, val.ind_ );
+    }
+};
+
+template< std::size_t Size >
+struct hash< rodbc::Number< Size > >
+{
+    using argument_type = rodbc::Number< Size >;
+    using result_type = std::size_t;
+
+    result_type operator() ( const argument_type& val ) const
+    {
+        return std::hash< rodbc::String< Size > >{}( val.val_ );
     }
 };
 

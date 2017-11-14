@@ -52,6 +52,22 @@ BOOST_AUTO_TEST_CASE( canDetectThatNumberIsTooLarge )
     BOOST_CHECK_THROW( rodbc::Number< 5 >{ number }, std::range_error );
 }
 
+BOOST_AUTO_TEST_CASE( canConstructInt64 )
+{
+    const std::int64_t integer{ -23 };
+
+    const rodbc::Number< 5 > number{ integer };
+    BOOST_CHECK_EQUAL( integer, number.to_int64() );
+}
+
+BOOST_AUTO_TEST_CASE( canConstructUInt64 )
+{
+    const std::uint64_t integer{ 42 };
+
+    const rodbc::Number< 5 > number{ integer };
+    BOOST_CHECK_EQUAL( integer, number.to_uint64() );
+}
+
 BOOST_FIXTURE_TEST_CASE( canInsertAndSelectNumber, Fixture )
 {
     rodbc::CreateTable< std::tuple< rodbc::Number< 10 > >, 0 >{

@@ -29,11 +29,47 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/functional/hash.hpp>
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/spirit/home/karma/generate.hpp>
+#include <boost/spirit/home/karma/numeric/int.hpp>
+#include <boost/spirit/home/karma/numeric/uint.hpp>
+#include <boost/spirit/home/qi/numeric/int.hpp>
+#include <boost/spirit/home/qi/numeric/uint.hpp>
+#include <boost/spirit/home/qi/parse.hpp>
 
 namespace rodbc
 {
 namespace
 {
+
+template< typename Integer, typename Generator >
+void from_integer( const Integer int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+{
+    boost::iostreams::array_sink sink{ str_val, str_len };
+    boost::iostreams::stream< boost::iostreams::array_sink > stream{ sink };
+    boost::spirit::ostream_iterator iterator{ stream };
+
+    if ( boost::spirit::karma::generate( iterator, Generator{}, int_val ) )
+    {
+        str_ind = stream.tellp();
+    }
+    else
+    {
+        throw std::range_error{ str( boost::format{ "Value %d is too large for a number with %d digits." } % int_val % str_len ) };
+    }
+}
+
+template< typename Integer, typename Parser >
+Integer to_integer( const char* const begin, const char* const end )
+{
+    Integer result;
+
+    if ( !boost::spirit::qi::parse( begin, end, Parser{} , result ) )
+    {
+        throw std::runtime_error{ "Number value not valid as an integer." };
+    }
+
+    return result;
+}
 
 Timestamp from_ptime( const boost::posix_time::ptime& ptime )
 {
@@ -142,7 +178,7 @@ std::size_t hash( const char* const val, const long ind )
     return ind < 0 ? 0 : boost::hash_range( val, val + ind );
 }
 
-void from_int(const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+void from_int( const boost::multiprecision::cpp_int& int_val, char* const str_val, long& str_ind, const std::size_t str_len )
 {
     boost::iostreams::array_sink sink{ str_val, str_len };
     boost::iostreams::stream< boost::iostreams::array_sink > stream{ sink };
@@ -155,6 +191,26 @@ void from_int(const boost::multiprecision::cpp_int& int_val, char* const str_val
     {
         throw std::range_error{ str( boost::format{ "Value %s is too large for a number with %d digits." } % int_val.str() % str_len ) };
     }
+}
+
+void from_int64( const std::int64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+{
+    from_integer< std::int64_t, boost::spirit::karma::int_generator< std::int64_t > >( int_val, str_val, str_ind, str_len );
+}
+
+void from_uint64( const std::uint64_t int_val, char* const str_val, long& str_ind, const std::size_t str_len )
+{
+    from_integer< std::uint64_t, boost::spirit::karma::uint_generator< std::uint64_t > >( int_val, str_val, str_ind, str_len );
+}
+
+std::int64_t to_int64( const char* const begin, const char* const end )
+{
+    return to_integer< std::int64_t, boost::spirit::qi::int_parser< std::int64_t > >( begin, end );
+}
+
+std::uint64_t to_uint64( const char* const begin, const char* const end )
+{
+    return to_integer< std::uint64_t, boost::spirit::qi::uint_parser< std::uint64_t > >( begin, end );
 }
 
 }

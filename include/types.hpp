@@ -120,17 +120,27 @@ public:
     explicit Number( const boost::multiprecision::cpp_int& );
     Number& operator= ( const boost::multiprecision::cpp_int& );
 
+    explicit Number( const std::int64_t );
+    Number& operator= ( const std::int64_t );
+
+    explicit Number( const std::uint64_t );
+    Number& operator= ( const std::uint64_t );
+
     bool isNull() const;
     void clear();
 
 public:
     boost::multiprecision::cpp_int value() const;
 
+    std::int64_t to_int64() const;
+    std::uint64_t to_uint64() const;
+
 private:
     String< Size > val_;
 
     friend class Statement;
     template< std::size_t Size_ > friend std::ostream& operator<< ( std::ostream& stream, const Number< Size_ >& number );
+    template< class Key > friend struct std::hash;
 };
 
 template< std::size_t Size > std::ostream& operator<< ( std::ostream& stream, const Number< Size >& number );
