@@ -29,6 +29,8 @@ namespace rodbc
 namespace detail
 {
 
+StatementCacheEntryBase::~StatementCacheEntryBase() = default;
+
 void create(
     Connection& conn,
     const std::string& tableName,

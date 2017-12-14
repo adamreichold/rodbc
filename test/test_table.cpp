@@ -64,11 +64,20 @@ BOOST_AUTO_TEST_CASE( canSelectByArbitraryKey )
         table.insert( std::make_tuple( index, rodbc::String< 32 >{ std::to_string( index % 2 ) }) );
     }
 
-    const auto rows = table.selectBy< 1 >( rodbc::String< 32 >{ "1" } );
+    const auto evenRows = table.selectBy< 1 >( rodbc::String< 32 >{ "0" } );
 
-    BOOST_CHECK_EQUAL( 64, rows.size() );
+    BOOST_CHECK_EQUAL( 64, evenRows.size() );
 
-    for ( const auto& row : rows )
+    for ( const auto& row : evenRows )
+    {
+        BOOST_CHECK( std::get< 0 >( row ) % 2 == 0 );
+    }
+
+    const auto oddRows = table.selectBy< 1 >( rodbc::String< 32 >{ "1" } );
+
+    BOOST_CHECK_EQUAL( 64, oddRows.size() );
+
+    for ( const auto& row : oddRows )
     {
         BOOST_CHECK( std::get< 0 >( row ) % 2 == 1 );
     }

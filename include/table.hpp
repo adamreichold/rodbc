@@ -29,6 +29,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #include <boost/mpl/size.hpp>
 #include <boost/optional.hpp>
 
+#include <bitset>
+#include <unordered_map>
+
 namespace rodbc
 {
 namespace detail
@@ -51,6 +54,31 @@ inline void forEachColumn( Action action )
 {
     boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
 }
+
+struct StatementCacheEntryBase
+{
+    virtual ~StatementCacheEntryBase();
+};
+
+template< typename Columns, std::size_t... Key >
+struct StatementCacheEntry : StatementCacheEntryBase
+{
+    template< typename Factory >
+    StatementCacheEntry( Connection& conn, Factory factory );
+
+    TypedStatement< std::tuple< ColumnAt< Columns, Key >... >, Columns > stmt;
+};
+
+template< typename Columns >
+class StatementCache
+{
+public:
+    template< std::size_t... Key, typename Factory >
+    TypedStatement< std::tuple< ColumnAt< Columns, Key >... >, Columns >& lookUp( Connection& conn, Factory factory );
+
+private:
+    std::unordered_map< std::bitset< sizeOfColumns< Columns >() >, std::unique_ptr< StatementCacheEntryBase > > stmts_;
+};
 
 }
 
@@ -104,6 +132,8 @@ protected:
 private:
     mutable boost::optional< TypedStatement< std::tuple< ColumnAt< PrimaryKey >... >, Columns > > select_;
     mutable boost::optional< TypedStatement< std::tuple<>, Columns > > selectAll_;
+
+    mutable detail::StatementCache< Columns > selectBy_;
 
     boost::optional< TypedStatement< Columns, std::tuple<> > > insert_;
 

@@ -32,6 +32,34 @@ namespace rodbc
 namespace detail
 {
 
+template< typename Columns, std::size_t... Key >
+template< typename Factory >
+inline StatementCacheEntry< Columns, Key... >::StatementCacheEntry( Connection& conn, Factory factory )
+: stmt{ conn, factory().c_str() }
+{
+}
+
+template< typename Columns >
+template< std::size_t... Key, typename Factory >
+inline TypedStatement< std::tuple< ColumnAt< Columns, Key >... >,  Columns >& StatementCache< Columns >::lookUp( Connection& conn, Factory factory )
+{
+    std::bitset< sizeOfColumns< Columns >() > key;
+
+    for ( const auto column : { Key... } )
+    {
+        key.set( column );
+    }
+
+    auto stmt = stmts_.find( key );
+
+    if ( stmt == stmts_.end() )
+    {
+        stmt = stmts_.emplace( key, new StatementCacheEntry< Columns, Key... >{ conn, factory } ).first;
+    }
+
+    return static_cast< StatementCacheEntry< Columns, Key... >& >( *stmt->second ).stmt;
+}
+
 struct ColumnTypeInserter
 {
     const char** values;
@@ -211,7 +239,7 @@ inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectBy( const C
 {
     std::vector< Columns > rows;
 
-    TypedStatement< std::tuple< ColumnAt< Key >... >, Columns > stmt{ conn_, detail::selectBy( name_, columnNames_.data(), columnNames_.size(), { Key... } ).c_str() };
+    auto& stmt = selectBy_.template lookUp< Key... >( conn_, [ this ]() { return detail::selectBy( name_, columnNames_.data(), columnNames_.size(), { Key... } ); } );
 
     stmt.params() = std::forward_as_tuple( key... );
 
