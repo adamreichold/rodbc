@@ -51,6 +51,29 @@ BOOST_AUTO_TEST_CASE( canCrudSingleRow )
     BOOST_CHECK( !table.select( 0 ).is_initialized() );
 }
 
+BOOST_AUTO_TEST_CASE( canSelectByArbitraryKey )
+{
+    rodbc::Table< std::tuple< int, rodbc::String< 32 > >, 0 > table{
+        conn, "tbl", { "pk", "col" }
+    };
+
+    table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
+
+    for ( int index = 0; index < 128; ++index )
+    {
+        table.insert( std::make_tuple( index, rodbc::String< 32 >{ std::to_string( index % 2 ) }) );
+    }
+
+    const auto rows = table.selectBy< 1 >( rodbc::String< 32 >{ "1" } );
+
+    BOOST_CHECK_EQUAL( 64, rows.size() );
+
+    for ( const auto& row : rows )
+    {
+        BOOST_CHECK( std::get< 0 >( row ) % 2 == 1 );
+    }
+}
+
 BOOST_AUTO_TEST_CASE( canUseSubtypeForExtension )
 {
     using Columns = std::tuple< int, rodbc::String< 32 > >;

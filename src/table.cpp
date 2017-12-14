@@ -111,10 +111,10 @@ void drop(
     Statement{ conn, stmt.str().c_str() }.exec();
 }
 
-std::string select(
+std::string selectBy(
     const std::string& tableName,
     const std::string* const columnNames, const std::size_t numberOfColumns,
-    const std::initializer_list< std::size_t >& primaryKey
+    const std::initializer_list< std::size_t >& key
 )
 {
     std::ostringstream stmt;
@@ -133,9 +133,9 @@ std::string select(
 
     stmt << " FROM " << tableName << " WHERE ";
 
-    for ( auto column = primaryKey.begin(); column != primaryKey.end(); ++column )
+    for ( auto column = key.begin(); column != key.end(); ++column )
     {
-        if ( column != primaryKey.begin() )
+        if ( column != key.begin() )
         {
             stmt << " AND ";
         }

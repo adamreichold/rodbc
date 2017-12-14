@@ -80,7 +80,7 @@ void drop(
     const bool ifExists
 );
 
-std::string select(
+std::string selectBy(
     const std::string& tableName,
     const std::string* const columnNames, const std::size_t numberOfColumns,
     const std::initializer_list< std::size_t >& primaryKey
@@ -170,7 +170,7 @@ inline boost::optional< Columns > Table< Columns, PrimaryKey... >::select( const
 {
     if ( !select_ )
     {
-        select_.emplace( conn_, detail::select( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ).c_str() );
+        select_.emplace( conn_, detail::selectBy( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ).c_str() );
     }
 
     select_->params() = std::forward_as_tuple( primaryKey... );
@@ -200,6 +200,26 @@ inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectAll() const
     while ( selectAll_->fetch() )
     {
         rows.push_back( selectAll_->cols() );
+    }
+
+    return rows;
+}
+
+template< typename Columns, std::size_t... PrimaryKey >
+template< std::size_t... Key >
+inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectBy( const ColumnAt< Key >&... key ) const
+{
+    std::vector< Columns > rows;
+
+    TypedStatement< std::tuple< ColumnAt< Key >... >, Columns > stmt{ conn_, detail::selectBy( name_, columnNames_.data(), columnNames_.size(), { Key... } ).c_str() };
+
+    stmt.params() = std::forward_as_tuple( key... );
+
+    stmt.exec();
+
+    while ( stmt.fetch() )
+    {
+        rows.push_back( stmt.cols() );
     }
 
     return rows;

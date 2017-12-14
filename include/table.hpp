@@ -84,6 +84,9 @@ public:
     boost::optional< Columns > select( const ColumnAt< PrimaryKey >&... primaryKey ) const;
     std::vector< Columns > selectAll() const;
 
+    template< std::size_t... Key >
+    std::vector< Columns > selectBy( const ColumnAt< Key >&... key ) const;
+
     void insert( const Columns& row );
 
     void update( const Columns& row );
