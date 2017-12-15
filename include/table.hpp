@@ -130,10 +130,7 @@ protected:
     const ColumnNames columnNames_;
 
 private:
-    mutable boost::optional< TypedStatement< std::tuple< ColumnAt< PrimaryKey >... >, Columns > > select_;
-    mutable boost::optional< TypedStatement< std::tuple<>, Columns > > selectAll_;
-
-    mutable detail::StatementCache< Columns > selectBy_;
+    mutable detail::StatementCache< Columns > select_;
 
     boost::optional< TypedStatement< Columns, std::tuple<> > > insert_;
 

@@ -113,7 +113,7 @@ void drop(
     Statement{ conn, stmt.str().c_str() }.exec();
 }
 
-std::string selectBy(
+std::string select(
     const std::string& tableName,
     const std::string* const columnNames, const std::size_t numberOfColumns,
     const std::initializer_list< std::size_t >& key
@@ -133,41 +133,22 @@ std::string selectBy(
         stmt << columnNames[ column ];
     }
 
-    stmt << " FROM " << tableName << " WHERE ";
-
-    for ( auto column = key.begin(); column != key.end(); ++column )
-    {
-        if ( column != key.begin() )
-        {
-            stmt << " AND ";
-        }
-
-        stmt << columnNames[ *column ] << " = ?";
-    }
-
-    return stmt.str();
-}
-
-std::string selectAll(
-    const std::string& tableName,
-    const std::string* const columnNames, const std::size_t numberOfColumns
-)
-{
-    std::ostringstream stmt;
-
-    stmt << "SELECT ";
-
-    for ( std::size_t column = 0; column != numberOfColumns; ++column )
-    {
-        if ( column != 0 )
-        {
-            stmt << ", ";
-        }
-
-        stmt << columnNames[ column ];
-    }
-
     stmt << " FROM " << tableName;
+
+    if ( key.size() )
+    {
+        stmt << " WHERE ";
+
+        for ( auto column = key.begin(); column != key.end(); ++column )
+        {
+            if ( column != key.begin() )
+            {
+                stmt << " AND ";
+            }
+
+            stmt << columnNames[ *column ] << " = ?";
+        }
+    }
 
     return stmt.str();
 }
@@ -211,7 +192,7 @@ std::string insert(
 std::string update(
     const std::string& tableName,
     const std::string* const columnNames, const std::size_t numberOfColumns,
-    const std::initializer_list< std::size_t >& primaryKey
+    const std::initializer_list< std::size_t >& key
 )
 {
     std::ostringstream stmt;
@@ -228,16 +209,19 @@ std::string update(
         stmt << columnNames[ column ] << " = ?";
     }
 
-    stmt << " WHERE ";
-
-    for ( auto column = primaryKey.begin(); column != primaryKey.end(); ++column )
+    if ( key.size() )
     {
-        if ( column != primaryKey.begin() )
-        {
-            stmt << " AND ";
-        }
+        stmt << " WHERE ";
 
-        stmt << columnNames[ *column ] << " = ?";
+        for ( auto column = key.begin(); column != key.end(); ++column )
+        {
+            if ( column != key.begin() )
+            {
+                stmt << " AND ";
+            }
+
+            stmt << columnNames[ *column ] << " = ?";
+        }
     }
 
     return stmt.str();
@@ -246,37 +230,30 @@ std::string update(
 std::string delete_(
     const std::string& tableName,
     const std::string* const columnNames,
-    const std::initializer_list< std::size_t >& primaryKey
-)
-{
-    std::ostringstream stmt;
-
-    stmt << "DELETE FROM " << tableName << " WHERE ";
-
-    for ( auto column = primaryKey.begin(); column != primaryKey.end(); ++column )
-    {
-        if ( column != primaryKey.begin() )
-        {
-            stmt << " AND ";
-        }
-
-        stmt << columnNames[ *column ] << " = ?";
-    }
-
-    return stmt.str();
-}
-
-std::string deleteAll(
-    const std::string& tableName
+    const std::initializer_list< std::size_t >& key
 )
 {
     std::ostringstream stmt;
 
     stmt << "DELETE FROM " << tableName;
 
+    if ( key.size() )
+    {
+        stmt << " WHERE ";
+
+        for ( auto column = key.begin(); column != key.end(); ++column )
+        {
+            if ( column != key.begin() )
+            {
+                stmt << " AND ";
+            }
+
+            stmt << columnNames[ *column ] << " = ?";
+        }
+    }
+
     return stmt.str();
 }
 
 }
-
 }

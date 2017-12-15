@@ -32,6 +32,22 @@ namespace rodbc
 namespace detail
 {
 
+template< std::size_t Size >
+inline std::bitset< Size > makeKey()
+{
+    return {};
+}
+
+template< std::size_t Size, std::size_t Position, std::size_t... MorePositions >
+inline std::bitset< Size > makeKey()
+{
+    auto key = makeKey< Size, MorePositions... >();
+
+    key.set( Position );
+
+    return key;
+}
+
 template< typename Columns, std::size_t... Key >
 template< typename Factory >
 inline StatementCacheEntry< Columns, Key... >::StatementCacheEntry( Connection& conn, Factory factory )
@@ -43,12 +59,7 @@ template< typename Columns >
 template< std::size_t... Key, typename Factory >
 inline TypedStatement< std::tuple< ColumnAt< Columns, Key >... >,  Columns >& StatementCache< Columns >::lookUp( Connection& conn, Factory factory )
 {
-    std::bitset< sizeOfColumns< Columns >() > key;
-
-    for ( const auto column : { Key... } )
-    {
-        key.set( column );
-    }
+    const auto key = makeKey< sizeOfColumns< Columns >(), Key... >();
 
     auto stmt = stmts_.find( key );
 
@@ -108,15 +119,10 @@ void drop(
     const bool ifExists
 );
 
-std::string selectBy(
+std::string select(
     const std::string& tableName,
     const std::string* const columnNames, const std::size_t numberOfColumns,
-    const std::initializer_list< std::size_t >& primaryKey
-);
-
-std::string selectAll(
-    const std::string& tableName,
-    const std::string* const columnNames, const std::size_t numberOfColumns
+    const std::initializer_list< std::size_t >& key
 );
 
 std::string insert(
@@ -127,17 +133,13 @@ std::string insert(
 std::string update(
     const std::string& tableName,
     const std::string* const columnNames, const std::size_t numberOfColumns,
-    const std::initializer_list< std::size_t >& primaryKey
+    const std::initializer_list< std::size_t >& key
 );
 
 std::string delete_(
     const std::string& tableName,
     const std::string* const columnNames,
-    const std::initializer_list< std::size_t >& primaryKey
-);
-
-std::string deleteAll(
-    const std::string& tableName
+    const std::initializer_list< std::size_t >& key
 );
 
 }
@@ -196,21 +198,18 @@ inline void Table< Columns, PrimaryKey... >::drop()
 template< typename Columns, std::size_t... PrimaryKey >
 inline boost::optional< Columns > Table< Columns, PrimaryKey... >::select( const ColumnAt< PrimaryKey >&... primaryKey ) const
 {
-    if ( !select_ )
-    {
-        select_.emplace( conn_, detail::selectBy( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ).c_str() );
-    }
+    auto& stmt = select_.template lookUp< PrimaryKey... >( conn_, [ this ]() { return detail::select( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ); } );
 
-    select_->params() = std::forward_as_tuple( primaryKey... );
+    stmt.params() = std::forward_as_tuple( primaryKey... );
 
-    select_->exec();
+    stmt.exec();
 
-    if ( !select_->fetch() )
+    if ( !stmt.fetch() )
     {
         return boost::none;
     }
 
-    return select_->cols();
+    return stmt.cols();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
@@ -218,16 +217,13 @@ inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectAll() const
 {
     std::vector< Columns > rows;
 
-    if ( !selectAll_ )
-    {
-        selectAll_.emplace( conn_, detail::selectAll( name_, columnNames_.data(), columnNames_.size() ).c_str() );
-    }
+    auto& stmt = select_.template lookUp<>( conn_, [ this ]() { return detail::select( name_, columnNames_.data(), columnNames_.size(), {} ); } );
 
-    selectAll_->exec();
+    stmt.exec();
 
-    while ( selectAll_->fetch() )
+    while ( stmt.fetch() )
     {
-        rows.push_back( selectAll_->cols() );
+        rows.push_back( stmt.cols() );
     }
 
     return rows;
@@ -239,7 +235,7 @@ inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectBy( const C
 {
     std::vector< Columns > rows;
 
-    auto& stmt = selectBy_.template lookUp< Key... >( conn_, [ this ]() { return detail::selectBy( name_, columnNames_.data(), columnNames_.size(), { Key... } ); } );
+    auto& stmt = select_.template lookUp< Key... >( conn_, [ this ]() { return detail::select( name_, columnNames_.data(), columnNames_.size(), { Key... } ); } );
 
     stmt.params() = std::forward_as_tuple( key... );
 
@@ -303,7 +299,7 @@ inline void Table< Columns, PrimaryKey... >::deleteAll()
 {
     if ( !deleteAll_ )
     {
-        deleteAll_.emplace( conn_, detail::deleteAll( name_, columnNames_.data(), { PrimaryKey... } ).c_str() );
+        deleteAll_.emplace( conn_, detail::delete_( name_, columnNames_.data(), {} ).c_str() );
     }
 
     deleteAll_->exec();

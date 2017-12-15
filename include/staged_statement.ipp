@@ -35,7 +35,7 @@ inline StagedStatement< StagedParams, Params, Cols, StagingIndex >::StagedStatem
     const char* const stmt
 )
 : createStagingTable_{ conn, stagingTableName, stagingTableColumnNames, DROP_TABLE_IF_EXISTS | TEMPORARY_TABLE }
-, deleteFromStagingTable_{ conn, detail::deleteAll( stagingTableName ).c_str() }
+, deleteFromStagingTable_{ conn, detail::delete_( stagingTableName, stagingTableColumnNames.data(), {} ).c_str() }
 , insertIntoStagingTable_{ conn, detail::insert( stagingTableName, stagingTableColumnNames.data(), stagingTableColumnNames.size() ).c_str() }
 , stmt_{ conn, stmt }
 {
