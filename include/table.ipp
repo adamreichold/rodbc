@@ -48,27 +48,27 @@ inline std::bitset< Size > makeKey()
     return key;
 }
 
-template< typename Columns, std::size_t... Key >
+template< typename Params, typename Cols, std::size_t... Key >
 template< typename Factory >
-inline StatementCacheEntry< Columns, Key... >::StatementCacheEntry( Connection& conn, Factory factory )
+inline StatementCacheEntry< Params, Cols, Key... >::StatementCacheEntry( Connection& conn, Factory factory )
 : stmt{ conn, factory().c_str() }
 {
 }
 
-template< typename Columns >
+template< typename Params, typename Cols >
 template< std::size_t... Key, typename Factory >
-inline TypedStatement< std::tuple< ColumnAt< Columns, Key >... >,  Columns >& StatementCache< Columns >::lookUp( Connection& conn, Factory factory )
+inline typename StatementCacheEntry< Params, Cols, Key... >::Stmt& StatementCache< Params, Cols >::lookUp( Connection& conn, Factory factory )
 {
-    const auto key = makeKey< sizeOfColumns< Columns >(), Key... >();
+    const auto key = makeKey< sizeOfColumns< Params >(), Key... >();
 
     auto stmt = stmts_.find( key );
 
     if ( stmt == stmts_.end() )
     {
-        stmt = stmts_.emplace( key, new StatementCacheEntry< Columns, Key... >{ conn, factory } ).first;
+        stmt = stmts_.emplace( key, new StatementCacheEntry< Params, Cols, Key... >{ conn, factory } ).first;
     }
 
-    return static_cast< StatementCacheEntry< Columns, Key... >& >( *stmt->second ).stmt;
+    return static_cast< StatementCacheEntry< Params, Cols, Key... >& >( *stmt->second ).stmt;
 }
 
 struct ColumnTypeInserter
@@ -215,18 +215,7 @@ inline boost::optional< Columns > Table< Columns, PrimaryKey... >::select( const
 template< typename Columns, std::size_t... PrimaryKey >
 inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectAll() const
 {
-    std::vector< Columns > rows;
-
-    auto& stmt = select_.template lookUp<>( conn_, [ this ]() { return detail::select( name_, columnNames_.data(), columnNames_.size(), {} ); } );
-
-    stmt.exec();
-
-    while ( stmt.fetch() )
-    {
-        rows.push_back( stmt.cols() );
-    }
-
-    return rows;
+    return selectBy<>();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
@@ -284,25 +273,24 @@ inline void Table< Columns, PrimaryKey... >::update_( const Columns& row, const 
 template< typename Columns, std::size_t... PrimaryKey >
 inline void Table< Columns, PrimaryKey... >::delete_( const ColumnAt< PrimaryKey >&... primaryKey )
 {
-    if ( !delete__ )
-    {
-        delete__.emplace( conn_, detail::delete_( name_, columnNames_.data(), { PrimaryKey... } ).c_str() );
-    }
-
-    delete__->params() = std::forward_as_tuple( primaryKey... );
-
-    delete__->exec();
+    deleteBy< PrimaryKey... >( primaryKey... );
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
 inline void Table< Columns, PrimaryKey... >::deleteAll()
 {
-    if ( !deleteAll_ )
-    {
-        deleteAll_.emplace( conn_, detail::delete_( name_, columnNames_.data(), {} ).c_str() );
-    }
+    deleteBy<>();
+}
 
-    deleteAll_->exec();
+template< typename Columns, std::size_t... PrimaryKey >
+template< std::size_t... Key >
+inline void Table< Columns, PrimaryKey... >::deleteBy( const ColumnAt< Key >&... key )
+{
+    auto& stmt = delete__.template lookUp< Key... >( conn_, [ this ]() { return detail::delete_( name_, columnNames_.data(), { Key... } ); } );
+
+    stmt.params() = std::forward_as_tuple( key... );
+
+    stmt.exec();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >

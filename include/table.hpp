@@ -60,24 +60,25 @@ struct StatementCacheEntryBase
     virtual ~StatementCacheEntryBase();
 };
 
-template< typename Columns, std::size_t... Key >
+template< typename Params, typename Cols, std::size_t... Key >
 struct StatementCacheEntry : StatementCacheEntryBase
 {
     template< typename Factory >
     StatementCacheEntry( Connection& conn, Factory factory );
 
-    TypedStatement< std::tuple< ColumnAt< Columns, Key >... >, Columns > stmt;
+    using Stmt = TypedStatement< std::tuple< ColumnAt< Params, Key >... >, Cols >;
+    Stmt stmt;
 };
 
-template< typename Columns >
+template< typename Params, typename Cols >
 class StatementCache
 {
 public:
     template< std::size_t... Key, typename Factory >
-    TypedStatement< std::tuple< ColumnAt< Columns, Key >... >, Columns >& lookUp( Connection& conn, Factory factory );
+    typename StatementCacheEntry< Params, Cols, Key... >::Stmt& lookUp( Connection& conn, Factory factory );
 
 private:
-    std::unordered_map< std::bitset< sizeOfColumns< Columns >() >, std::unique_ptr< StatementCacheEntryBase > > stmts_;
+    std::unordered_map< std::bitset< sizeOfColumns< Params >() >, std::unique_ptr< StatementCacheEntryBase > > stmts_;
 };
 
 }
@@ -111,7 +112,6 @@ public:
 
     boost::optional< Columns > select( const ColumnAt< PrimaryKey >&... primaryKey ) const;
     std::vector< Columns > selectAll() const;
-
     template< std::size_t... Key >
     std::vector< Columns > selectBy( const ColumnAt< Key >&... key ) const;
 
@@ -122,6 +122,8 @@ public:
 
     void delete_( const ColumnAt< PrimaryKey >&... primaryKey );
     void deleteAll();
+    template< std::size_t... Key >
+    void deleteBy( const ColumnAt< Key >&... key );
 
 protected:
     Connection& conn_;
@@ -130,14 +132,13 @@ protected:
     const ColumnNames columnNames_;
 
 private:
-    mutable detail::StatementCache< Columns > select_;
+    mutable detail::StatementCache< Columns, Columns > select_;
 
     boost::optional< TypedStatement< Columns, std::tuple<> > > insert_;
 
     boost::optional< TypedStatement< std::tuple< Columns, ColumnAt< PrimaryKey >... >, std::tuple<> > > update__;
 
-    boost::optional< TypedStatement< std::tuple< ColumnAt< PrimaryKey >... >, std::tuple<> > > delete__;
-    boost::optional< TypedStatement< std::tuple<>, std::tuple<> > > deleteAll_;
+    detail::StatementCache< Columns, std::tuple<> > delete__;
 };
 
 /**
