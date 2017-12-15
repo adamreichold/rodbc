@@ -38,37 +38,37 @@ inline std::bitset< Size > makeKey()
     return {};
 }
 
-template< std::size_t Size, std::size_t Position, std::size_t... MorePositions >
+template< std::size_t Size, std::size_t Index, std::size_t... Indices >
 inline std::bitset< Size > makeKey()
 {
-    auto key = makeKey< Size, MorePositions... >();
+    auto key = makeKey< Size, Indices... >();
 
-    key.set( Position );
+    key.set( Index );
 
     return key;
 }
 
-template< typename Params, typename Cols, std::size_t... Key >
+template< typename Params, typename Cols, std::size_t... Indices >
 template< typename Factory >
-inline StatementCacheEntry< Params, Cols, Key... >::StatementCacheEntry( Connection& conn, Factory factory )
+inline StatementCacheEntry< Params, Cols, Indices... >::StatementCacheEntry( Connection& conn, Factory factory )
 : stmt{ conn, factory().c_str() }
 {
 }
 
 template< typename Params, typename Cols >
-template< std::size_t... Key, typename Factory >
-inline typename StatementCacheEntry< Params, Cols, Key... >::Stmt& StatementCache< Params, Cols >::lookUp( Connection& conn, Factory factory )
+template< std::size_t... Indices, typename Factory >
+inline typename StatementCacheEntry< Params, Cols, Indices... >::Stmt& StatementCache< Params, Cols >::lookUp( Connection& conn, Factory factory )
 {
-    const auto key = makeKey< sizeOfColumns< Params >(), Key... >();
+    const auto key = makeKey< sizeOfColumns< Params >(), Indices... >();
 
     auto stmt = stmts_.find( key );
 
     if ( stmt == stmts_.end() )
     {
-        stmt = stmts_.emplace( key, new StatementCacheEntry< Params, Cols, Key... >{ conn, factory } ).first;
+        stmt = stmts_.emplace( key, new StatementCacheEntry< Params, Cols, Indices... >{ conn, factory } ).first;
     }
 
-    return static_cast< StatementCacheEntry< Params, Cols, Key... >& >( *stmt->second ).stmt;
+    return static_cast< StatementCacheEntry< Params, Cols, Indices... >& >( *stmt->second ).stmt;
 }
 
 struct ColumnTypeInserter
@@ -132,7 +132,8 @@ std::string insert(
 
 std::string update(
     const std::string& tableName,
-    const std::string* const columnNames, const std::size_t numberOfColumns,
+    const std::string* const columnNames,
+    const std::initializer_list< std::size_t >& value,
     const std::initializer_list< std::size_t >& key
 );
 
@@ -254,20 +255,32 @@ inline void Table< Columns, PrimaryKey... >::insert( const Columns& row )
 template< typename Columns, std::size_t... PrimaryKey >
 inline void Table< Columns, PrimaryKey... >::update( const Columns& row )
 {
-    update_( row, std::get< PrimaryKey >( row )... );
+    updateBy( row, IndexSequence< PrimaryKey... >{} );
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-inline void Table< Columns, PrimaryKey... >::update_( const Columns& row, const ColumnAt< PrimaryKey >&... primaryKey )
+template< std::size_t... Key >
+inline void Table< Columns, PrimaryKey... >::updateBy( const Columns& row, const IndexSequence< Key... >& key )
 {
-    if ( !update__ )
-    {
-        update__.emplace( conn_, detail::update( name_, columnNames_.data(), columnNames_.size(), { PrimaryKey... } ).c_str() );
-    }
+    updateAtBy( row, MakeIndexSequence< sizeOfColumns >{}, key );
+}
 
-    update__->params() = std::forward_as_tuple( row, primaryKey... );
+template< typename Columns, std::size_t... PrimaryKey >
+template< std::size_t... Value >
+inline void Table< Columns, PrimaryKey... >::updateAt( const Columns& row, const IndexSequence< Value... >& value )
+{
+    updateAtBy( row, value, IndexSequence< PrimaryKey... >{} );
+}
 
-    update__->exec();
+template< typename Columns, std::size_t... PrimaryKey >
+template< std::size_t... Value, std::size_t... Key >
+inline void Table< Columns, PrimaryKey... >::updateAtBy( const Columns& row, const IndexSequence< Value... >&, const IndexSequence< Key... >& )
+{
+    auto& stmt = update_.template lookUp< Value..., (sizeOfColumns + Key)... >( conn_, [ this ]() { return detail::update( name_, columnNames_.data(), { Value... }, { Key... } ); } );
+
+    stmt.params() = std::forward_as_tuple( std::get< Value >( row )..., std::get< Key >( row )... );
+
+    stmt.exec();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >

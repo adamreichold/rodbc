@@ -83,6 +83,40 @@ BOOST_AUTO_TEST_CASE( canSelectByArbitraryKey )
     }
 }
 
+
+BOOST_AUTO_TEST_CASE( canUpdateArbitraryValuesByArbitraryKey )
+{
+    rodbc::Table< std::tuple< int, rodbc::String< 32 > >, 0 > table{
+        conn, "tbl", { "pk", "col" }
+    };
+
+    table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
+
+    for ( int index = 0; index < 128; ++index )
+    {
+        table.insert( std::make_tuple( index, rodbc::String< 32 >{ std::to_string( index ) }) );
+    }
+
+    const auto row = std::make_tuple( -127, rodbc::String< 32 >{ "127" } );
+
+    table.updateAtBy( row, rodbc::IndexSequence< 0 >{}, rodbc::IndexSequence< 1 >{} );
+
+    const auto rows = table.selectAll();
+
+    BOOST_CHECK_EQUAL( 128, rows.size() );
+
+    for ( int index = 0; index < 127; ++index )
+    {
+        const auto& row = rows[ index ];
+
+        BOOST_CHECK_EQUAL( index, std::get< 0 >( row ) );
+        BOOST_CHECK_EQUAL( std::to_string( index ), std::get< 1 >( row ).str() );
+    }
+
+    BOOST_CHECK_EQUAL( -127, std::get< 0 >( rows[ 127 ] ) );
+    BOOST_CHECK_EQUAL( std::string{ "127" }, std::get< 1 >( row ).str() );
+}
+
 BOOST_AUTO_TEST_CASE( canUseSubtypeForExtension )
 {
     using Columns = std::tuple< int, rodbc::String< 32 > >;

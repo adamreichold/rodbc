@@ -191,7 +191,8 @@ std::string insert(
 
 std::string update(
     const std::string& tableName,
-    const std::string* const columnNames, const std::size_t numberOfColumns,
+    const std::string* const columnNames,
+    const std::initializer_list< std::size_t >& value,
     const std::initializer_list< std::size_t >& key
 )
 {
@@ -199,14 +200,14 @@ std::string update(
 
     stmt << "UPDATE " << tableName << " SET ";
 
-    for ( std::size_t column = 0; column != numberOfColumns; ++column )
+    for ( auto column = value.begin(); column != value.end(); ++column )
     {
-        if ( column != 0 )
+        if ( column != value.begin() )
         {
             stmt << ", ";
         }
 
-        stmt << columnNames[ column ] << " = ?";
+        stmt << columnNames[ *column ] << " = ?";
     }
 
     if ( key.size() )

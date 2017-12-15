@@ -20,6 +20,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 
+#include <boost/mpl/accumulate.hpp>
+#include <boost/mpl/range_c.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
 #include <ctime>
@@ -204,5 +206,30 @@ template< typename Type > bool operator== ( const Nullable< Type >& lhs, const N
 template< typename Type > bool operator!= ( const Nullable< Type >& lhs, const Nullable< Type >& rhs );
 
 template< typename Type > std::ostream& operator<< ( std::ostream& stream, const Nullable< Type >& nullable );
+
+template< std::size_t... Indices >
+struct IndexSequence
+{
+};
+
+namespace detail
+{
+
+struct PushBackIndex
+{
+    template< typename, typename >
+    struct apply;
+
+    template< std::size_t... Indices, typename Index >
+    struct apply< IndexSequence< Indices... >, Index >
+    {
+        using type = IndexSequence< Indices..., Index::value >;
+    };
+};
+
+}
+
+template< std::size_t Size >
+using MakeIndexSequence = typename boost::mpl::accumulate< boost::mpl::range_c< std::size_t, 0, Size >, IndexSequence<>, detail::PushBackIndex >::type;
 
 }

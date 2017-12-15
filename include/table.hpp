@@ -60,13 +60,13 @@ struct StatementCacheEntryBase
     virtual ~StatementCacheEntryBase();
 };
 
-template< typename Params, typename Cols, std::size_t... Key >
+template< typename Params, typename Cols, std::size_t... Indices >
 struct StatementCacheEntry : StatementCacheEntryBase
 {
     template< typename Factory >
     StatementCacheEntry( Connection& conn, Factory factory );
 
-    using Stmt = TypedStatement< std::tuple< ColumnAt< Params, Key >... >, Cols >;
+    using Stmt = TypedStatement< std::tuple< ColumnAt< Params, Indices >... >, Cols >;
     Stmt stmt;
 };
 
@@ -74,8 +74,8 @@ template< typename Params, typename Cols >
 class StatementCache
 {
 public:
-    template< std::size_t... Key, typename Factory >
-    typename StatementCacheEntry< Params, Cols, Key... >::Stmt& lookUp( Connection& conn, Factory factory );
+    template< std::size_t... Indices, typename Factory >
+    typename StatementCacheEntry< Params, Cols, Indices... >::Stmt& lookUp( Connection& conn, Factory factory );
 
 private:
     std::unordered_map< std::bitset< sizeOfColumns< Params >() >, std::unique_ptr< StatementCacheEntryBase > > stmts_;
@@ -117,8 +117,13 @@ public:
 
     void insert( const Columns& row );
 
-    void update( const Columns& row );
-    void update_( const Columns& row, const ColumnAt< PrimaryKey >&... primaryKey );
+    void update( const Columns& row ); ///< update all values based on the primary key
+    template< std::size_t... Key >
+    void updateBy( const Columns& row, const IndexSequence< Key... >& ); ///< update all values based on the given key
+    template< std::size_t... Value >
+    void updateAt( const Columns& row, const IndexSequence< Value... >& ); ///< update the given values based on the pimary key
+    template< std::size_t... Value, std::size_t... Key >
+    void updateAtBy( const Columns& row, const IndexSequence< Value... >&, const IndexSequence< Key... >& ); ///< update the given values based on the given key
 
     void delete_( const ColumnAt< PrimaryKey >&... primaryKey );
     void deleteAll();
@@ -132,12 +137,11 @@ protected:
     const ColumnNames columnNames_;
 
 private:
+    static constexpr auto sizeOfColumns = detail::sizeOfColumns< Columns >();
+
     mutable detail::StatementCache< Columns, Columns > select_;
-
     boost::optional< TypedStatement< Columns, std::tuple<> > > insert_;
-
-    boost::optional< TypedStatement< std::tuple< Columns, ColumnAt< PrimaryKey >... >, std::tuple<> > > update__;
-
+    detail::StatementCache< std::tuple< Columns, Columns >, std::tuple<> > update_;
     detail::StatementCache< Columns, std::tuple<> > delete__;
 };
 
