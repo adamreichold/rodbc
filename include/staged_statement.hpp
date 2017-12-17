@@ -33,8 +33,9 @@ class StagedStatement
 {
 private:
     using CreateStagingTable = CreateTable< std::tuple< StagingIndex, StagedParams >, 0 >;
-    using StagingTableColumns = typename CreateStagingTable::Table::Columns;
-    using StagingTableColumnNames = typename CreateStagingTable::Table::ColumnNames;
+    using StagingTable = typename CreateStagingTable::Table;
+    using StagingTableColumns = typename StagingTable::Columns;
+    using StagingTableColumnNames = typename StagingTable::ColumnNames;
 
 public:
     StagedStatement(

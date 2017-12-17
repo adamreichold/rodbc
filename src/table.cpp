@@ -155,26 +155,27 @@ std::string select(
 
 std::string insert(
     const std::string& tableName,
-    const std::string* const columnNames, const std::size_t numberOfColumns
+    const std::string* const columnNames,
+    const std::initializer_list< std::size_t >& value
 )
 {
     std::ostringstream stmt;
 
     stmt << "INSERT INTO " << tableName << " (";
 
-    for ( std::size_t column = 0; column != numberOfColumns; ++column )
+    for ( auto column = value.begin(); column != value.end(); ++column )
     {
-        if ( column != 0 )
+        if ( column != value.begin() )
         {
             stmt << ", ";
         }
 
-        stmt << columnNames[ column ];
+        stmt << columnNames[ *column ];
     }
 
     stmt << ") VALUES (";
 
-    for ( std::size_t column = 0; column != numberOfColumns; ++column )
+    for ( std::size_t column = 0; column != value.size(); ++column )
     {
         if ( column != 0 )
         {

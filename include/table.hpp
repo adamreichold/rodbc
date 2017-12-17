@@ -22,6 +22,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "typed_statement.hpp"
 
+#include <boost/functional/hash.hpp>
 #include <boost/fusion/include/flatten_view.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/for_each.hpp>
@@ -44,7 +45,7 @@ using ColumnAt = typename boost::mpl::at<
 >::type;
 
 template< typename Columns >
-inline constexpr std::size_t sizeOfColumns()
+inline constexpr std::size_t numberOfColumns()
 {
     return boost::mpl::size< boost::fusion::flatten_view< Columns > >::value;
 }
@@ -54,6 +55,14 @@ inline void forEachColumn( Action action )
 {
     boost::mpl::for_each< boost::fusion::flatten_view< Columns > >( action );
 }
+
+enum class StatementCacheEntryType : std::uint8_t
+{
+    Select,
+    Insert,
+    Update,
+    Delete
+};
 
 struct StatementCacheEntryBase
 {
@@ -70,15 +79,16 @@ struct StatementCacheEntry : StatementCacheEntryBase
     Stmt stmt;
 };
 
-template< typename Params, typename Cols >
+template< std::size_t Size >
 class StatementCache
 {
 public:
-    template< std::size_t... Indices, typename Factory >
+    template< StatementCacheEntryType Type, typename Params, typename Cols, std::size_t... Indices, typename Factory >
     typename StatementCacheEntry< Params, Cols, Indices... >::Stmt& lookUp( Connection& conn, Factory factory );
 
 private:
-    std::unordered_map< std::bitset< sizeOfColumns< Params >() >, std::unique_ptr< StatementCacheEntryBase > > stmts_;
+    using Key = std::pair< StatementCacheEntryType, std::bitset< Size > >;
+    std::unordered_map< Key, std::unique_ptr< StatementCacheEntryBase >, boost::hash< Key > > stmts_;
 };
 
 }
@@ -95,14 +105,16 @@ class Table
 public:
     using Columns = Columns_;
 
-    struct ColumnNames : std::array< std::string, detail::sizeOfColumns< Columns >() >
+    static constexpr auto numberOfColumns = detail::numberOfColumns< Columns >();
+
+    template< std::size_t Index >
+    using ColumnAt = detail::ColumnAt< Columns, Index >;
+
+    struct ColumnNames : std::array< std::string, numberOfColumns >
     {
         template< typename... Values >
         ColumnNames( Values&&... values );
     };
-
-    template< std::size_t Index >
-    using ColumnAt = detail::ColumnAt< Columns, Index >;
 
 public:
     Table( Connection& conn, std::string name, ColumnNames columnNames );
@@ -115,7 +127,9 @@ public:
     template< std::size_t... Key >
     std::vector< Columns > selectBy( const ColumnAt< Key >&... key ) const;
 
-    void insert( const Columns& row );
+    void insert( const Columns& row ); ///< insert all values
+    template< std::size_t... Value >
+    void insertAt( const Columns& row, const IndexSequence< Value... >& ); ///< insert the given values
 
     void update( const Columns& row ); ///< update all values based on the primary key
     template< std::size_t... Key >
@@ -137,12 +151,7 @@ protected:
     const ColumnNames columnNames_;
 
 private:
-    static constexpr auto sizeOfColumns = detail::sizeOfColumns< Columns >();
-
-    mutable detail::StatementCache< Columns, Columns > select_;
-    boost::optional< TypedStatement< Columns, std::tuple<> > > insert_;
-    detail::StatementCache< std::tuple< Columns, Columns >, std::tuple<> > update_;
-    detail::StatementCache< Columns, std::tuple<> > delete__;
+    mutable detail::StatementCache< 2 * numberOfColumns > cache_;
 };
 
 /**
@@ -154,6 +163,23 @@ struct CreateTable
     using Table = rodbc::Table< Columns, PrimaryKey... >;
 
     CreateTable( Connection& conn, const std::string& name, const typename Table::ColumnNames& columnNames, const unsigned flags = 0 );
+};
+
+}
+
+namespace boost
+{
+
+template< std::size_t Size >
+struct hash< std::bitset< Size > >
+{
+    using argument_type = std::bitset< Size >;
+    using result_type = std::size_t;
+
+    result_type operator() ( const argument_type& val ) const
+    {
+        return std::hash< argument_type >{}( val );
+    }
 };
 
 }
