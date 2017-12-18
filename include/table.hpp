@@ -171,15 +171,8 @@ namespace boost
 {
 
 template< std::size_t Size >
-struct hash< std::bitset< Size > >
+struct hash< std::bitset< Size > > : std::hash< std::bitset< Size > >
 {
-    using argument_type = std::bitset< Size >;
-    using result_type = std::size_t;
-
-    result_type operator() ( const argument_type& val ) const
-    {
-        return std::hash< argument_type >{}( val );
-    }
 };
 
 }
