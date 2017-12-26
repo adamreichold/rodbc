@@ -52,17 +52,15 @@ BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
         conn, "SELECT col FROM tbl"
     };
 
-    BOOST_CHECK_NO_THROW( selectStmt.exec() );
-
-    for ( const auto& row : selectStmt )
+    for ( const auto& row : resultsOf( selectStmt ) )
     {
         BOOST_CHECK_LE( 0, std::get< 0 >( row ) );
         BOOST_CHECK_GT( 128, std::get< 0 >( row ) );
     }
 
-    BOOST_CHECK_NO_THROW( selectStmt.exec() );
+    auto results = resultsOf( selectStmt );
 
-    const auto sum = std::accumulate( std::begin( selectStmt ), std::end( selectStmt ), 0, []( const int sum, const std::tuple< int >& row )
+    const auto sum = std::accumulate( results.begin(), results.end(), 0, []( const int sum, const std::tuple< int >& row )
     {
         return sum + std::get< 0 >( row );
     } );
@@ -92,9 +90,9 @@ BOOST_AUTO_TEST_CASE( canIterateThroughRowSets )
         conn, "SELECT col FROM tbl", 3
     };
 
-    BOOST_CHECK_NO_THROW( selectStmt.exec() );
+    auto results = resultsOf( selectStmt );
 
-    const auto sum = std::accumulate( std::begin( selectStmt ), std::end( selectStmt ), 0, []( const int sum, const std::tuple< int >& row )
+    const auto sum = std::accumulate( results.begin(), results.end(), 0, []( const int sum, const std::tuple< int >& row )
     {
         return sum + std::get< 0 >( row );
     } );

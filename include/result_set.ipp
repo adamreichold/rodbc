@@ -24,6 +24,8 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace rodbc
 {
+namespace detail
+{
 
 template< typename Stmt, typename Cols >
 inline constexpr ResultSetIterator< Stmt, Cols >::ResultSetIterator()
@@ -115,31 +117,29 @@ inline void ResultSetIterator< Stmt, std::vector< Cols > >::fetch()
 
 }
 
-namespace std
+template< typename Stmt, typename Cols >
+inline ResultSet< Stmt, Cols >::ResultSet( Stmt& stmt )
+: stmt_{ stmt }
 {
-
-template< typename Params, typename Cols >
-inline rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > begin( rodbc::TypedStatement< Params, Cols >& stmt )
-{
-    return { stmt };
+    stmt_.exec();
 }
 
-template< typename Params, typename Cols >
-inline constexpr rodbc::ResultSetIterator< rodbc::TypedStatement< Params, Cols >, Cols > end( rodbc::TypedStatement< Params, Cols >& )
+template< typename Stmt, typename Cols >
+inline detail::ResultSetIterator< Stmt, Cols > ResultSet< Stmt, Cols >::begin()
+{
+    return { stmt_ };
+}
+
+template< typename Stmt, typename Cols >
+inline detail::ResultSetIterator< Stmt, Cols > ResultSet< Stmt, Cols >::end()
 {
     return {};
 }
 
-template< typename StagedParams, typename Params, typename Cols >
-inline rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > begin( rodbc::StagedStatement< StagedParams, Params, Cols >& stmt )
+template< typename Stmt >
+inline auto resultsOf( Stmt& stmt ) -> ResultSet< Stmt, typename std::decay< decltype( stmt.cols() ) >::type >
 {
     return { stmt };
-}
-
-template< typename StagedParams, typename Params, typename Cols >
-inline constexpr rodbc::ResultSetIterator< rodbc::StagedStatement< StagedParams, Params, Cols >, Cols > end( rodbc::StagedStatement< StagedParams, Params, Cols >& )
-{
-    return {};
 }
 
 }
