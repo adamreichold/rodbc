@@ -175,4 +175,44 @@ BOOST_AUTO_TEST_CASE( canInsertAndSelectEmptyString )
     insertAndSelectSingleValue( conn, rodbc::String< 32 >{ "" }, rodbc::String< 32 > { "FOOBAR" } );
 }
 
+BOOST_AUTO_TEST_CASE( canInsertArrayOfStructs )
+{
+    rodbc::Table< std::tuple< int, int, int > > table{ conn, "tbl", { "x", "y", "z", } };
+    table.create( rodbc::DROP_TABLE_IF_EXISTS | rodbc::TEMPORARY_TABLE );
+
+    struct Params
+    {
+        int x;
+        int y;
+        int z;
+    };
+
+    std::vector< Params > params;
+    params.reserve( 128 );
+    for ( int index = 0; index < 128; ++index )
+    {
+        params.emplace_back( Params{ index, 2 * index, 3 * index } );
+    }
+
+    rodbc::Statement stmt{ conn, "INSERT INTO tbl (x, y, z) VALUES (?, ?, ?)" };
+    stmt.bindParam( params.front().x );
+    stmt.bindParam( params.front().y );
+    stmt.bindParam( params.front().z );
+    stmt.bindParamArray( params );
+
+    BOOST_CHECK_NO_THROW( stmt.exec() );
+
+    const auto rows = table.selectAll();
+
+    BOOST_CHECK_EQUAL( 128, rows.size() );
+
+    for ( int index = 0; index < 128; ++index )
+    {
+        const auto& row = rows[ index ];
+
+        BOOST_CHECK_EQUAL( 2 * std::get< 0 >( row ), std::get< 1 >( row ) );
+        BOOST_CHECK_EQUAL( 3 * std::get< 0 >( row ), std::get< 2 >( row ) );
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
