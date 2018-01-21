@@ -76,7 +76,7 @@ Connection::Connection( Environment& env, const char* const connStr )
 {
     check( ::SQLAllocHandle( SQL_HANDLE_DBC, env.env_, &dbc_ ), SQL_HANDLE_ENV, env.env_ );
     check( ::SQLDriverConnect( dbc_, nullptr, (SQLCHAR*) connStr, SQL_NTS, nullptr, 0, 0, SQL_DRIVER_COMPLETE_REQUIRED ), SQL_HANDLE_DBC, dbc_ );
-    check( ::SQLSetConnectAttr( dbc_, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_FALSE, 0 ), SQL_HANDLE_DBC, dbc_ );
+    check( ::SQLSetConnectAttr( dbc_, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_OFF, 0 ), SQL_HANDLE_DBC, dbc_ );
 }
 
 Connection::~Connection()
