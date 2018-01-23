@@ -119,7 +119,7 @@ inline void ResultSetIterator< Stmt, std::vector< Cols > >::fetch()
 
 template< typename Stmt, typename Cols >
 inline ResultSet< Stmt, Cols >::ResultSet( Stmt& stmt )
-: stmt_{ stmt }
+: stmt_( stmt )
 {
     stmt_.exec();
 }

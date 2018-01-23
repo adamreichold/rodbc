@@ -55,7 +55,7 @@ Database::Database( const char* const connStr )
 }
 
 Database::Transaction::Transaction( Database& database )
-: database{ database }
+: database( database )
 , lease{ database.pool_ }
 , transaction{ lease( []( rodbc::Connection& conn ) { return rodbc::Transaction{ conn }; } ) }
 {
@@ -76,9 +76,9 @@ void Database::Transaction::commit()
 }
 
 Database::Statement::Statement( Transaction& transaction )
-: database{ transaction.database }
-, lease{ transaction.lease }
-, stmts{ *lease( []( Stmts& stmts ) { return &stmts; } ) }
+: database( transaction.database )
+, lease( transaction.lease )
+, stmts( *lease( []( Stmts& stmts ) { return &stmts; } ) )
 {
     database.stats_.statements++;
     database.stats_.activeStatements++;
@@ -103,7 +103,7 @@ bool Database::Statement::doFetch( Stmt& stmt )
 
 Database::InsertFoo::InsertFoo( Transaction& transaction )
 : Statement{ transaction }
-, foo{ stmts.insertFoo.params() }
+, foo( stmts.insertFoo.params() )
 {
     database.stats_.insertFoo++;
 }
@@ -115,7 +115,7 @@ void Database::InsertFoo::exec()
 
 Database::SelectAllFoo::SelectAllFoo( Transaction& transaction )
 : Statement{ transaction }
-, foo{ stmts.selectAllFoo.cols() }
+, foo( stmts.selectAllFoo.cols() )
 {
     database.stats_.selectAllFoo++;
 }
@@ -132,7 +132,7 @@ bool Database::SelectAllFoo::fetch()
 
 Database::InsertBar::InsertBar( Transaction& transaction )
 : Statement{ transaction }
-, bar{ stmts.insertBar.params() }
+, bar( stmts.insertBar.params() )
 {
     database.stats_.insertBar++;
 }
@@ -144,8 +144,8 @@ void Database::InsertBar::exec()
 
 Database::SelectBarByA::SelectBarByA( Transaction& transaction )
 : Statement{ transaction }
-, a{ std::get< 0 >( stmts.selectBarByA.params() ) }
-, bar{ stmts.selectBarByA.cols() }
+, a( std::get< 0 >( stmts.selectBarByA.params() ) )
+, bar( stmts.selectBarByA.cols() )
 {
     database.stats_.selectBarByA++;
 }

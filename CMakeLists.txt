@@ -10,7 +10,7 @@ if( NOT CMAKE_BUILD_TYPE MATCHES Debug )
     set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto" )
 endif()
 
-find_package( Boost 1.60 COMPONENTS thread REQUIRED )
+find_package( Boost 1.58 COMPONENTS thread REQUIRED )
 include_directories( include ${Boost_INCLUDE_DIR} )
 
 add_library( rodbc SHARED src/types.cpp src/connection.cpp src/statement.cpp src/table.cpp src/connection_pool.cpp )

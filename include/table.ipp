@@ -65,7 +65,7 @@ inline typename StatementCacheEntry< Params, Cols, Indices... >::Stmt& Statement
 
     if ( entry == stmts_.end() )
     {
-        entry = stmts_.emplace( key, new StatementCacheEntry< Params, Cols, Indices... >{ conn, factory } ).first;
+        entry = stmts_.emplace( key, Value{ new StatementCacheEntry< Params, Cols, Indices... >{ conn, factory } } ).first;
     }
 
     return static_cast< StatementCacheEntry< Params, Cols, Indices... >& >( *entry->second ).stmt;
@@ -159,14 +159,14 @@ std::string delete_(
 template< typename Columns, std::size_t... PrimaryKey >
 template< typename... Values >
 inline Table< Columns, PrimaryKey... >::ColumnNames::ColumnNames( Values&&... values )
-: std::array< std::string, numberOfColumns >{ std::forward< Values >( values )... }
+: std::array< std::string, numberOfColumns >( { std::forward< Values >( values )... } )
 {
     static_assert( numberOfColumns == sizeof... ( Values ), "Number of columns and column names must be equal." );
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
 inline Table< Columns, PrimaryKey... >::Table( Connection& conn, std::string name, ColumnNames columnNames )
-: conn_{ conn }
+: conn_( conn )
 , name_{ std::move( name ) }
 , columnNames_{ std::move( columnNames ) }
 {

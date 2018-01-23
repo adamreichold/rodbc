@@ -52,7 +52,7 @@ inline ConnectionPool< Statements, ConnectionPoolImpl >::ConnectionPool( std::st
 template< typename Statements, typename ConnectionPoolImpl >
 inline ConnectionPool< Statements, ConnectionPoolImpl >::Lease::Lease( ConnectionPool& pool )
 : ConnectionPoolImpl::LeaseImpl{ pool }
-, pool_{ pool }
+, pool_( pool )
 {
 }
 

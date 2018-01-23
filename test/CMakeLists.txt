@@ -2,7 +2,7 @@ set( CMAKE_CURRENT_SOURCE_DIR ON )
 
 set( RODBC_TEST_CONN_STR "\"Driver=SQLITE3;Database=:memory:;\"" CACHE STRING "ODBC connection string used to execute unit tests." )
 
-find_package( Boost 1.60 COMPONENTS unit_test_framework REQUIRED )
+find_package( Boost 1.58 COMPONENTS system unit_test_framework REQUIRED )
 add_definitions( "'-DRODBC_TEST_CONN_STR=${RODBC_TEST_CONN_STR}'" )
 
 function( add_test_executable test_name executable_name source )

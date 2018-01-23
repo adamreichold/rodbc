@@ -88,7 +88,8 @@ public:
 
 private:
     using Key = std::pair< StatementCacheEntryType, std::bitset< Size > >;
-    std::unordered_map< Key, std::unique_ptr< StatementCacheEntryBase >, boost::hash< Key > > stmts_;
+    using Value = std::unique_ptr< StatementCacheEntryBase >;
+    std::unordered_map< Key, Value, boost::hash< Key > > stmts_;
 };
 
 }

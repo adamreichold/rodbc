@@ -49,7 +49,7 @@ void insertIndices( rodbc::TypedStatement< std::vector< std::tuple< int > >, std
 
     for ( int index = 0; index < size; ++index )
     {
-        params[ index ] = index;
+        std::get< 0 >( params[ index ] ) = index;
     }
 
     BOOST_CHECK_NO_THROW( stmt.exec() );

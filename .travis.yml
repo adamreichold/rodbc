@@ -1,0 +1,19 @@
+addons:
+  apt:
+    packages:
+      - ninja-build
+      - doxygen
+      - graphviz
+      - libsqliteodbc
+
+install:
+  - wget -O boost_1_58_0.tar.bz2 https://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.bz2/download && tar -xf boost_1_58_0.tar.bz2
+  - pushd boost_1_58_0 && ./bootstrap.sh --with-libraries=thread,test && sudo ./b2 link=shared threading=multi variant=release install && popd
+
+language: cpp
+
+script:
+  - mkdir build && cd build
+  - cmake -G Ninja ..
+  - ninja
+  - ctest

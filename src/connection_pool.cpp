@@ -48,7 +48,7 @@ ThreadLocalConnectionPoolImpl::ThreadLocalConnectionPoolImpl() = default;
 ThreadLocalConnectionPoolImpl::~ThreadLocalConnectionPoolImpl() = default;
 
 ThreadLocalConnectionPoolImpl::LeaseImpl::LeaseImpl( ThreadLocalConnectionPoolImpl& impl )
-: impl_{ impl }
+: impl_( impl )
 {
 }
 
@@ -70,7 +70,7 @@ FixedSizeConnectionPoolImpl::FixedSizeConnectionPoolImpl( const std::size_t size
 FixedSizeConnectionPoolImpl::~FixedSizeConnectionPoolImpl() = default;
 
 FixedSizeConnectionPoolImpl::LeaseImpl::LeaseImpl( FixedSizeConnectionPoolImpl& impl )
-: impl_{ impl }
+: impl_( impl )
 {
     boost::unique_lock< boost::mutex > lock{ impl_.holder_lock_ };
 
