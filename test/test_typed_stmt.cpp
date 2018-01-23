@@ -93,6 +93,21 @@ void selectIndices( rodbc::TypedStatement< std::tuple<>, std::vector< std::tuple
 
 BOOST_FIXTURE_TEST_SUITE( typedStmt, Fixture )
 
+BOOST_AUTO_TEST_CASE( canPassthroughParamToCol )
+{
+    rodbc::TypedStatement< std::tuple< int >, std::tuple< int > > stmt{ conn, "SELECT ?" };
+
+    std::get< 0 >( stmt.params() ) = 42;
+
+    stmt.exec();
+
+    BOOST_CHECK( stmt.fetch() );
+
+    BOOST_CHECK_EQUAL( 42, std::get< 0 >( stmt.cols() ) );
+
+    BOOST_CHECK( !stmt.fetch() );
+}
+
 BOOST_AUTO_TEST_CASE( canRebindParameterSet )
 {
     CreateSimpleTable< int >{ conn };
