@@ -39,9 +39,15 @@ using FloatingPointTypes = boost::mpl::list< float, double >;
 using NumericTypes = boost::mpl::joint_view< IntegerTypes, FloatingPointTypes >;
 
 template< typename Type >
+struct IsTinyOrUnsignedInteger : std::integral_constant< bool, sizeof ( Type ) == 1 || std::is_unsigned< Type >::value > {};
+
+template< typename Type >
+struct IsTinyOrUnsignedInteger< rodbc::Nullable< Type > > : IsTinyOrUnsignedInteger< Type > {};
+
+template< typename Type >
 bool createSingleColumnTable( rodbc::Connection& conn )
 {
-    if ( conn.dbms() == rodbc::DBMS::PostgreSQL && ( sizeof ( Type ) == 1 || std::is_unsigned< Type >::value ) )
+    if ( conn.dbms() == rodbc::DBMS::PostgreSQL && IsTinyOrUnsignedInteger< Type >::value )
     {
         BOOST_TEST_MESSAGE( "PostgreSQL does not support tiny or unsigned integer types." );
 

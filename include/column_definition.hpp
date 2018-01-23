@@ -121,7 +121,7 @@ struct ColumnDefinition< String< Size > >
 template< std::size_t Size >
 struct ColumnDefinition< Number< Size > >
 {
-    static constexpr const char* type = "NUMBER";
+    static constexpr const char* type = "NUMERIC";
     static constexpr std::size_t size = Size;
     static constexpr const char* constraint = "NOT NULL";
 };

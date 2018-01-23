@@ -105,16 +105,21 @@ BOOST_AUTO_TEST_CASE( canUpdateArbitraryValuesByArbitraryKey )
 
     BOOST_CHECK_EQUAL( 128, rows.size() );
 
-    for ( int index = 0; index < 127; ++index )
+    for ( const auto& row : rows )
     {
-        const auto& row = rows[ index ];
+        const auto pk = std::get< 0 >( row );
+        const auto col = std::get< 1 >( row ).str();
 
-        BOOST_CHECK_EQUAL( index, std::get< 0 >( row ) );
-        BOOST_CHECK_EQUAL( std::to_string( index ), std::get< 1 >( row ).str() );
+        if ( pk < 0 )
+        {
+            BOOST_CHECK_EQUAL( -127, pk );
+            BOOST_CHECK_EQUAL( std::string{ "127" }, col );
+        }
+        else
+        {
+            BOOST_CHECK_EQUAL( std::to_string( pk ), col );
+        }
     }
-
-    BOOST_CHECK_EQUAL( -127, std::get< 0 >( rows[ 127 ] ) );
-    BOOST_CHECK_EQUAL( std::string{ "127" }, std::get< 1 >( row ).str() );
 }
 
 BOOST_AUTO_TEST_CASE( canUseSubtypeForExtension )

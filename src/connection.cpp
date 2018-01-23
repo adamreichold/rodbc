@@ -124,7 +124,7 @@ DBMS Connection::dbms() const
     {
         dbms_ = DBMS::PostgreSQL;
     }
-    else if ( boost::icontains( name, "MySQL" ) )
+    else if ( boost::icontains( name, "MySQL" ) || boost::icontains( name, "MariaDB" ) )
     {
         dbms_ = DBMS::MySQL;
     }

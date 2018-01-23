@@ -93,9 +93,12 @@ void selectIndices( rodbc::TypedStatement< std::tuple<>, std::vector< std::tuple
 
 BOOST_FIXTURE_TEST_SUITE( typedStmt, Fixture )
 
-BOOST_AUTO_TEST_CASE( canPassthroughParamToCol )
+BOOST_AUTO_TEST_CASE( canRoundtripParamToCol )
 {
-    rodbc::TypedStatement< std::tuple< int >, std::tuple< int > > stmt{ conn, "SELECT ?" };
+    rodbc::TypedStatement< std::tuple< int >, std::tuple< int > > stmt{
+        conn,
+        conn.dbms() == rodbc::DBMS::PostgreSQL ? "SELECT ? :: int" : "SELECT ?"
+    };
 
     std::get< 0 >( stmt.params() ) = 42;
 

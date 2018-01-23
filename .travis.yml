@@ -5,6 +5,8 @@ addons:
       - doxygen
       - graphviz
       - libsqliteodbc
+      - libmyodbc
+      - odbc-postgresql
 
 install:
   - wget -O boost_1_58_0.tar.bz2 https://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.bz2/download && tar -xf boost_1_58_0.tar.bz2
@@ -12,8 +14,24 @@ install:
 
 language: cpp
 
+env:
+  - DB=sqlite
+  - DB=mysql
+  - DB=postgresql
+
+services:
+  - mysql
+  - postgresql
+
+before_script:
+  - if [ "$DB" = 'mysql' ]; then echo -e '\n[MySQL]\nDescription = MySQL ODBC driver\nDriver = /usr/lib/x86_64-linux-gnu/odbc/libmyodbc.so\n' | sudo tee -a /etc/odbcinst.ini; fi
+  - if [ "$DB" = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS rodbc_test;'; fi
+  - if [ "$DB" = 'postgresql' ]; then psql -U postgres -c 'CREATE DATABASE rodbc_test;'; fi
+
 script:
+  - if [ "$DB" = 'mysql' ]; then DB_CONFIG='-DRODBC_TEST_CONN_STR="Driver=MySQL;Database=rodbc_test;"'; fi
+  - if [ "$DB" = 'postgresql' ]; then DB_CONFIG='-DRODBC_TEST_CONN_STR="Driver=PostgreSQL Unicode;User=postgres;Database=rodbc_test;"'; fi
   - mkdir build && cd build
-  - cmake -G Ninja ..
+  - cmake -G Ninja "$DB_CONFIG" ..
   - ninja
   - ctest
