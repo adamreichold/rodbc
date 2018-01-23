@@ -1,3 +1,5 @@
+sudo: false
+
 addons:
   apt:
     packages:
@@ -10,7 +12,7 @@ addons:
 
 install:
   - wget -O boost_1_58_0.tar.bz2 https://sourceforge.net/projects/boost/files/boost/1.58.0/boost_1_58_0.tar.bz2/download && tar -xf boost_1_58_0.tar.bz2
-  - pushd boost_1_58_0 && ./bootstrap.sh --with-libraries=thread,test && sudo ./b2 link=shared threading=multi variant=release install && popd
+  - pushd boost_1_58_0 && ./bootstrap.sh --prefix=$HOME/boost-1.58.0 --with-libraries=thread,test && ./b2 link=shared threading=multi variant=release install && popd
 
 language: cpp
 
@@ -32,6 +34,6 @@ script:
   - if [ "$DB" = 'mysql' ]; then DB_CONFIG='-DRODBC_TEST_CONN_STR="Driver=MySQL;Database=rodbc_test;"'; fi
   - if [ "$DB" = 'postgresql' ]; then DB_CONFIG='-DRODBC_TEST_CONN_STR="Driver=PostgreSQL Unicode;User=postgres;Database=rodbc_test;"'; fi
   - mkdir build && cd build
-  - cmake -G Ninja "$DB_CONFIG" ..
+  - cmake -G Ninja "-DBOOST_ROOT=$HOME/boost-1.58.0" "$DB_CONFIG" ..
   - ninja
   - ctest
