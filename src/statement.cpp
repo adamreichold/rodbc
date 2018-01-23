@@ -30,12 +30,14 @@ namespace rodbc
 namespace
 {
 
-inline void check( const SQLRETURN rc, const SQLSMALLINT type, const SQLHANDLE handle )
+inline SQLRETURN check( const SQLRETURN rc, const SQLSMALLINT type, const SQLHANDLE handle )
 {
     if ( !SQL_SUCCEEDED( rc ) && rc != SQL_NO_DATA )
     {
         throw Exception{ type, handle };
     }
+
+    return rc;
 }
 
 template< typename Type >
@@ -192,7 +194,7 @@ void Statement::exec()
 
 bool Statement::fetch()
 {
-    return SQL_SUCCEEDED( ::SQLFetch( stmt_ ) );
+    return check( ::SQLFetch( stmt_ ), SQL_HANDLE_STMT, stmt_ ) != SQL_NO_DATA;
 }
 
 Statement& Statement::doBindStringParam( const char* const data, const std::size_t length , const long* const indicator )
