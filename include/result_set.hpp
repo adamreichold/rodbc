@@ -22,6 +22,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/iterator/iterator_facade.hpp>
 
+#include <functional>
 #include <vector>
 
 namespace rodbc
@@ -29,11 +30,13 @@ namespace rodbc
 namespace detail
 {
 
-template< typename Stmt, typename Cols >
-class ResultSetIterator : public boost::iterator_facade< ResultSetIterator< Stmt, Cols >, const Cols, std::input_iterator_tag >
+template< typename Cols >
+class ResultSetIterator : public boost::iterator_facade< ResultSetIterator< Cols >, const Cols, std::input_iterator_tag >
 {
 public:
     constexpr ResultSetIterator();
+
+    template< typename Stmt >
     ResultSetIterator( Stmt& stmt );
 
 private:
@@ -44,14 +47,17 @@ private:
     const Cols& dereference() const;
 
 private:
-    Stmt* stmt_;
+    const Cols* cols_;
+    const std::function< bool() > fetch_;
 };
 
-template< typename Stmt, typename Cols >
-class ResultSetIterator< Stmt, std::vector< Cols > > : public boost::iterator_facade< ResultSetIterator< Stmt, std::vector< Cols > >, const Cols, std::input_iterator_tag >
+template< typename Cols >
+class ResultSetIterator< std::vector< Cols > > : public boost::iterator_facade< ResultSetIterator< std::vector< Cols > >, const Cols, std::input_iterator_tag >
 {
 public:
     constexpr ResultSetIterator();
+
+    template< typename Stmt >
     ResultSetIterator( Stmt& stmt );
 
 private:
@@ -62,28 +68,36 @@ private:
     const Cols& dereference() const;
 
 private:
-    Stmt* stmt_;
+    const std::vector< Cols >* cols_;
+    const std::function< bool() > fetch_;
+
     typename std::vector< Cols >::const_iterator it_;
 
     void fetch();
 };
 
-}
-
-template< typename Stmt, typename Cols >
-class ResultSet
+struct ExecStmt
 {
-public:
-    ResultSet( Stmt& stmt );
-
-    detail::ResultSetIterator< Stmt, Cols > begin();
-    detail::ResultSetIterator< Stmt, Cols > end();
-
-private:
-    Stmt& stmt_;
+    template< typename Stmt >
+    ExecStmt( Stmt& stmt );
 };
 
-template< typename Stmt >
-auto resultsOf( Stmt& stmt ) -> ResultSet< Stmt, typename std::decay< decltype( stmt.cols() ) >::type >;
+}
+
+template< typename Cols >
+class ResultSet : private detail::ExecStmt
+{
+public:
+    template< typename Stmt >
+    ResultSet( Stmt& stmt );
+
+    using Iterator = detail::ResultSetIterator< Cols >;
+
+    const Iterator& begin() const;
+    constexpr Iterator end() const;
+
+private:
+    const Iterator begin_;
+};
 
 }

@@ -28,37 +28,44 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <numeric>
 
-BOOST_FIXTURE_TEST_SUITE( resultSet, Fixture )
+namespace
+{
 
-BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
+void createTableAndInsertValues( rodbc::Connection& conn )
 {
     CreateSimpleTable< int >{ conn };
 
-    rodbc::TypedStatement< std::tuple< int >, std::tuple<> > insertStmt{
+    rodbc::TypedStatement< std::tuple< int >, std::tuple<> > stmt{
         conn, "INSERT INTO tbl (col) VALUES (?)"
     };
 
     for ( int index = 0; index < 128; ++index )
     {
-        auto& stmt = insertStmt;
-        auto& params = stmt.params();
-
-        std::get< 0 >( params ) = index;
+        std::get< 0 >( stmt.params() ) = index;
 
         stmt.exec();
     }
+}
 
-    rodbc::TypedStatement< std::tuple<>, std::tuple< int > > selectStmt{
+}
+
+BOOST_FIXTURE_TEST_SUITE( resultSet, Fixture )
+
+BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
+{
+    createTableAndInsertValues( conn );
+
+    rodbc::TypedStatement< std::tuple<>, std::tuple< int > > stmt{
         conn, "SELECT col FROM tbl"
     };
 
-    for ( const auto& row : resultsOf( selectStmt ) )
+    for ( const auto& row : rodbc::ResultSet< std::tuple< int > >{ stmt } )
     {
         BOOST_CHECK_LE( 0, std::get< 0 >( row ) );
         BOOST_CHECK_GT( 128, std::get< 0 >( row ) );
     }
 
-    auto results = resultsOf( selectStmt );
+    rodbc::ResultSet< std::tuple< int > > results{ stmt };
 
     const auto sum = std::accumulate( results.begin(), results.end(), 0, []( const int sum, const std::tuple< int >& row )
     {
@@ -70,27 +77,13 @@ BOOST_AUTO_TEST_CASE( canBeUsedInRangedForLoopsAndWithStlAlgorithms )
 
 BOOST_AUTO_TEST_CASE( canIterateThroughRowSets )
 {
-    CreateSimpleTable< int >{ conn };
+    createTableAndInsertValues( conn );
 
-    rodbc::TypedStatement< std::tuple< int >, std::tuple<> > insertStmt{
-        conn, "INSERT INTO tbl (col) VALUES (?)"
-    };
-
-    for ( int index = 0; index < 128; ++index )
-    {
-        auto& stmt = insertStmt;
-        auto& params = stmt.params();
-
-        std::get< 0 >( params ) = index;
-
-        stmt.exec();
-    }
-
-    rodbc::TypedStatement< std::tuple<>, std::vector< std::tuple< int > > > selectStmt{
+    rodbc::TypedStatement< std::tuple<>, std::vector< std::tuple< int > > > stmt{
         conn, "SELECT col FROM tbl", 3
     };
 
-    auto results = resultsOf( selectStmt );
+    rodbc::ResultSet< std::vector< std::tuple< int > > > results{ stmt };
 
     const auto sum = std::accumulate( results.begin(), results.end(), 0, []( const int sum, const std::tuple< int >& row )
     {
