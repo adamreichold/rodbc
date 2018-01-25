@@ -30,6 +30,16 @@ namespace rodbc
 namespace detail
 {
 
+struct StmtExec
+{
+    template< typename Stmt >
+    StmtExec( Stmt& stmt );
+};
+
+struct StmtFetch
+{
+};
+
 template< typename Cols >
 class ResultSetIterator : public boost::iterator_facade< ResultSetIterator< Cols >, const Cols, std::input_iterator_tag >
 {
@@ -37,7 +47,7 @@ public:
     constexpr ResultSetIterator();
 
     template< typename Stmt >
-    ResultSetIterator( Stmt& stmt );
+    ResultSetIterator( const StmtFetch&, Stmt& stmt );
 
 private:
     friend class boost::iterator_core_access;
@@ -58,7 +68,7 @@ public:
     constexpr ResultSetIterator();
 
     template< typename Stmt >
-    ResultSetIterator( Stmt& stmt );
+    ResultSetIterator( const StmtFetch&, Stmt& stmt );
 
 private:
     friend class boost::iterator_core_access;
@@ -76,16 +86,10 @@ private:
     void fetch();
 };
 
-struct ExecStmt
-{
-    template< typename Stmt >
-    ExecStmt( Stmt& stmt );
-};
-
 }
 
 template< typename Cols >
-class ResultSet : private detail::ExecStmt
+class ResultSet : private detail::StmtExec
 {
 public:
     template< typename Stmt >

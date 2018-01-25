@@ -107,6 +107,12 @@ void insertAndSelectSingleNullValue( rodbc::Connection& conn, const Type& sentin
     }
 }
 
+template< typename Cols >
+std::vector< Cols > collectResults( const rodbc::ResultSet< Cols >& results )
+{
+    return { results.begin(), results.end() };
+}
+
 }
 
 BOOST_FIXTURE_TEST_SUITE( stmt, Fixture )
@@ -208,7 +214,7 @@ BOOST_AUTO_TEST_CASE( canInsertArrayOfStructs )
 
     BOOST_CHECK_NO_THROW( stmt.exec() );
 
-    const auto rows = table.selectAll();
+    const auto rows = collectResults( table.selectAll() );
 
     BOOST_CHECK_EQUAL( 128, rows.size() );
 

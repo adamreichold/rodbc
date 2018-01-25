@@ -21,6 +21,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "typed_statement.hpp"
+#include "result_set.hpp"
 
 #include <boost/functional/hash.hpp>
 #include <boost/fusion/include/flatten_view.hpp>
@@ -124,9 +125,9 @@ public:
     void drop();
 
     boost::optional< Columns > select( const ColumnAt< PrimaryKey >&... primaryKey ) const;
-    std::vector< Columns > selectAll() const;
+    ResultSet< Columns > selectAll() const;
     template< std::size_t... Key >
-    std::vector< Columns > selectBy( const ColumnAt< Key >&... key ) const;
+    ResultSet< Columns > selectBy( const ColumnAt< Key >&... key ) const;
 
     void insert( const Columns& row ); ///< insert all values
     template< std::size_t... Value >

@@ -35,7 +35,7 @@ inline constexpr ResultSetIterator< Cols >::ResultSetIterator()
 
 template< typename Cols >
 template< typename Stmt >
-inline ResultSetIterator< Cols >::ResultSetIterator( Stmt& stmt )
+inline ResultSetIterator< Cols >::ResultSetIterator( const StmtFetch&, Stmt& stmt )
 : cols_{ &stmt.cols() }
 , fetch_{ [ &stmt ]() { return stmt.fetch(); } }
 {
@@ -71,7 +71,7 @@ inline constexpr ResultSetIterator< std::vector< Cols > >::ResultSetIterator()
 
 template< typename Cols >
 template< typename Stmt >
-inline ResultSetIterator< std::vector< Cols > >::ResultSetIterator( Stmt& stmt )
+inline ResultSetIterator< std::vector< Cols > >::ResultSetIterator( const StmtFetch&, Stmt& stmt )
 : cols_{ &stmt.cols() }
 , fetch_{ [ &stmt ]() { return stmt.fetch(); } }
 {
@@ -120,7 +120,7 @@ inline void ResultSetIterator< std::vector< Cols > >::fetch()
 }
 
 template< typename Stmt >
-inline ExecStmt::ExecStmt( Stmt& stmt )
+inline StmtExec::StmtExec( Stmt& stmt )
 {
     stmt.exec();
 }
@@ -130,8 +130,8 @@ inline ExecStmt::ExecStmt( Stmt& stmt )
 template< typename Cols >
 template< typename Stmt >
 inline ResultSet< Cols >::ResultSet( Stmt& stmt )
-: ExecStmt{ stmt }
-, begin_{ stmt }
+: StmtExec{ stmt }
+, begin_{ detail::StmtFetch{}, stmt }
 {
 }
 

@@ -24,6 +24,7 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "column_definition.hpp"
 #include "typed_statement.ipp"
+#include "result_set.ipp"
 
 #include <array>
 
@@ -223,29 +224,20 @@ inline boost::optional< Columns > Table< Columns, PrimaryKey... >::select( const
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
-inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectAll() const
+inline ResultSet< Columns > Table< Columns, PrimaryKey... >::selectAll() const
 {
     return selectBy<>();
 }
 
 template< typename Columns, std::size_t... PrimaryKey >
 template< std::size_t... Key >
-inline std::vector< Columns > Table< Columns, PrimaryKey... >::selectBy( const ColumnAt< Key >&... key ) const
+inline ResultSet< Columns > Table< Columns, PrimaryKey... >::selectBy( const ColumnAt< Key >&... key ) const
 {
-    std::vector< Columns > rows;
-
     auto& stmt = cache_.template lookUp< detail::StatementCacheEntryType::Select, Columns, Columns, Key... >( conn_, [ this ]() { return detail::select( name_, columnNames_.data(), columnNames_.size(), { Key... } ); } );
 
     stmt.params() = std::forward_as_tuple( key... );
 
-    stmt.exec();
-
-    while ( stmt.fetch() )
-    {
-        rows.push_back( stmt.cols() );
-    }
-
-    return rows;
+    return ResultSet< Columns >{ stmt };
 }
 
 template< typename Columns, std::size_t... PrimaryKey >

@@ -26,6 +26,17 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/test/unit_test.hpp>
 
+namespace
+{
+
+template< typename Cols >
+std::vector< Cols > collectResults( const rodbc::ResultSet< Cols >& results )
+{
+    return { results.begin(), results.end() };
+}
+
+}
+
 BOOST_FIXTURE_TEST_SUITE( table, Fixture )
 
 BOOST_AUTO_TEST_CASE( canCrudSingleRow )
@@ -64,7 +75,7 @@ BOOST_AUTO_TEST_CASE( canSelectByArbitraryKey )
         table.insert( std::make_tuple( index, rodbc::String< 32 >{ std::to_string( index % 2 ) }) );
     }
 
-    const auto evenRows = table.selectBy< 1 >( rodbc::String< 32 >{ "0" } );
+    const auto evenRows = collectResults( table.selectBy< 1 >( rodbc::String< 32 >{ "0" } ) );
 
     BOOST_CHECK_EQUAL( 64, evenRows.size() );
 
@@ -73,7 +84,7 @@ BOOST_AUTO_TEST_CASE( canSelectByArbitraryKey )
         BOOST_CHECK( std::get< 0 >( row ) % 2 == 0 );
     }
 
-    const auto oddRows = table.selectBy< 1 >( rodbc::String< 32 >{ "1" } );
+    const auto oddRows = collectResults( table.selectBy< 1 >( rodbc::String< 32 >{ "1" } ) );
 
     BOOST_CHECK_EQUAL( 64, oddRows.size() );
 
@@ -101,7 +112,7 @@ BOOST_AUTO_TEST_CASE( canUpdateArbitraryValuesByArbitraryKey )
 
     table.updateAtBy( row, rodbc::IndexSequence< 0 >{}, rodbc::IndexSequence< 1 >{} );
 
-    const auto rows = table.selectAll();
+    const auto rows = collectResults( table.selectAll() );
 
     BOOST_CHECK_EQUAL( 128, rows.size() );
 
