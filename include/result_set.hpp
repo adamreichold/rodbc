@@ -21,8 +21,9 @@ along with rodbc.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <boost/iterator/iterator_facade.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
-#include <functional>
 #include <vector>
 
 namespace rodbc
@@ -41,53 +42,69 @@ struct StmtFetch
 };
 
 template< typename Cols >
-class ResultSetIterator : public boost::iterator_facade< ResultSetIterator< Cols >, const Cols, std::input_iterator_tag >
+struct StmtIteratorBase : boost::intrusive_ref_counter< StmtIteratorBase< Cols >, boost::thread_unsafe_counter >
 {
-public:
-    constexpr ResultSetIterator();
+    virtual ~StmtIteratorBase() = default;
 
-    template< typename Stmt >
-    ResultSetIterator( const StmtFetch&, Stmt& stmt );
-
-private:
-    friend class boost::iterator_core_access;
-
-    void increment();
-    bool equal( const ResultSetIterator& other ) const;
-    const Cols& dereference() const;
-
-private:
-    const Cols* cols_;
-    const std::function< bool() > fetch_;
+    virtual bool increment() = 0;
+    virtual const Cols& dereference() const = 0;
 };
 
-template< typename Cols >
-class ResultSetIterator< std::vector< Cols > > : public boost::iterator_facade< ResultSetIterator< std::vector< Cols > >, const Cols, std::input_iterator_tag >
+template< typename Stmt, typename Cols >
+struct StmtIterator : StmtIteratorBase< Cols >
 {
-public:
-    constexpr ResultSetIterator();
+    StmtIterator( Stmt& stmt );
 
-    template< typename Stmt >
-    ResultSetIterator( const StmtFetch&, Stmt& stmt );
-
-private:
-    friend class boost::iterator_core_access;
-
-    void increment();
-    bool equal( const ResultSetIterator& other ) const;
-    const Cols& dereference() const;
+    bool increment() override;
+    const Cols& dereference() const override;
 
 private:
-    const std::vector< Cols >* cols_;
-    const std::function< bool() > fetch_;
+    Stmt& stmt_;
+};
 
-    typename std::vector< Cols >::const_iterator it_;
+template< typename Stmt, typename Cols >
+struct StmtIterator< Stmt, std::vector< Cols > > : StmtIteratorBase< Cols >
+{
+    StmtIterator( Stmt& stmt );
 
-    void fetch();
+    bool increment() override;
+    const Cols& dereference() const override;
+
+private:
+    Stmt& stmt_;
+    typename std::vector< Cols >::const_iterator row_;
 };
 
 }
 
+/**
+ * @brief The ResultSetIterator class template
+ */
+template< typename Cols >
+class ResultSetIterator : public boost::iterator_facade< ResultSetIterator< Cols >, const Cols, std::input_iterator_tag >
+{
+private:
+    template< typename Cols_ > friend class ResultSet;
+
+    ResultSetIterator() = default;
+
+    template< typename Stmt >
+    ResultSetIterator( const detail::StmtFetch&, Stmt& stmt );
+
+private:
+    friend class boost::iterator_core_access;
+
+    void increment();
+    bool equal( const ResultSetIterator& other ) const;
+    const Cols& dereference() const;
+
+private:
+    boost::intrusive_ptr< detail::StmtIteratorBase< Cols > > it_;
+};
+
+/**
+ * @brief The ResultSet class template
+ */
 template< typename Cols >
 class ResultSet : private detail::StmtExec
 {
@@ -95,13 +112,11 @@ public:
     template< typename Stmt >
     ResultSet( Stmt& stmt );
 
-    using Iterator = detail::ResultSetIterator< Cols >;
-
-    const Iterator& begin() const;
-    constexpr Iterator end() const;
+    const ResultSetIterator< Cols >& begin() const;
+    ResultSetIterator< Cols > end() const;
 
 private:
-    const Iterator begin_;
+    const ResultSetIterator< Cols > begin_;
 };
 
 }

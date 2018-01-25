@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE( canIterateThroughRowSets )
         conn, "SELECT col FROM tbl", 3
     };
 
-    rodbc::ResultSet< std::vector< std::tuple< int > > > results{ stmt };
+    rodbc::ResultSet< std::tuple< int > > results{ stmt };
 
     const auto sum = std::accumulate( results.begin(), results.end(), 0, []( const int sum, const std::tuple< int >& row )
     {

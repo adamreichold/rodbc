@@ -27,104 +27,92 @@ namespace rodbc
 namespace detail
 {
 
-template< typename Cols >
-inline constexpr ResultSetIterator< Cols >::ResultSetIterator()
-: cols_{ nullptr }
-{
-}
-
-template< typename Cols >
-template< typename Stmt >
-inline ResultSetIterator< Cols >::ResultSetIterator( const StmtFetch&, Stmt& stmt )
-: cols_{ &stmt.cols() }
-, fetch_{ [ &stmt ]() { return stmt.fetch(); } }
-{
-    increment();
-}
-
-template< typename Cols >
-inline void ResultSetIterator< Cols >::increment()
-{
-    if ( !fetch_() )
-    {
-        cols_ = nullptr;
-    }
-}
-
-template< typename Cols >
-inline bool ResultSetIterator< Cols >::equal( const ResultSetIterator& other ) const
-{
-    return cols_ == other.cols_;
-}
-
-template< typename Cols >
-inline const Cols& ResultSetIterator< Cols >::dereference() const
-{
-    return *cols_;
-}
-
-template< typename Cols >
-inline constexpr ResultSetIterator< std::vector< Cols > >::ResultSetIterator()
-: cols_{ nullptr }
-{
-}
-
-template< typename Cols >
-template< typename Stmt >
-inline ResultSetIterator< std::vector< Cols > >::ResultSetIterator( const StmtFetch&, Stmt& stmt )
-: cols_{ &stmt.cols() }
-, fetch_{ [ &stmt ]() { return stmt.fetch(); } }
-{
-    fetch();
-}
-
-template< typename Cols >
-inline void ResultSetIterator< std::vector< Cols > >::increment()
-{
-    if ( ++it_ == cols_->end() )
-    {
-        fetch();
-    }
-}
-
-template< typename Cols >
-inline bool ResultSetIterator< std::vector< Cols > >::equal( const ResultSetIterator& other ) const
-{
-    if ( !cols_ )
-    {
-        return !other.cols_;
-    }
-    else
-    {
-        return cols_ == other.cols_ && it_ == other.it_;
-    }
-}
-
-template< typename Cols >
-inline const Cols& ResultSetIterator< std::vector< Cols > >::dereference() const
-{
-    return *it_;
-}
-
-template< typename Cols >
-inline void ResultSetIterator< std::vector< Cols > >::fetch()
-{
-    if ( !fetch_() )
-    {
-        cols_ = nullptr;
-    }
-    else
-    {
-        it_ = cols_->begin();
-    }
-}
-
 template< typename Stmt >
 inline StmtExec::StmtExec( Stmt& stmt )
 {
     stmt.exec();
 }
 
+template< typename Stmt, typename Cols >
+inline StmtIterator< Stmt, Cols >::StmtIterator( Stmt& stmt )
+: stmt_( stmt )
+{
+}
+
+template< typename Stmt, typename Cols >
+inline bool StmtIterator< Stmt, Cols >::increment()
+{
+    return stmt_.fetch();
+}
+
+template< typename Stmt, typename Cols >
+inline const Cols& StmtIterator< Stmt, Cols >::dereference() const
+{
+    return stmt_.cols();
+}
+
+template< typename Stmt, typename Cols >
+inline StmtIterator< Stmt, std::vector< Cols > >::StmtIterator( Stmt& stmt )
+: stmt_( stmt )
+, row_{ stmt_.cols().begin() }
+{
+}
+
+template< typename Stmt, typename Cols >
+inline bool StmtIterator< Stmt, std::vector< Cols > >::increment()
+{
+    if ( ++row_ != stmt_.cols().end() )
+    {
+        return true;
+    }
+    
+    if ( stmt_.fetch() )
+    {
+        row_ = stmt_.cols().begin();
+        
+        return true;
+    }
+
+    return false;
+}
+
+template< typename Stmt, typename Cols >
+inline const Cols& StmtIterator< Stmt, std::vector< Cols > >::dereference() const
+{
+    return *row_;
+}
+
+}
+
+template< typename Cols >
+template< typename Stmt >
+inline ResultSetIterator< Cols >::ResultSetIterator( const detail::StmtFetch&, Stmt& stmt )
+{
+    if ( stmt.fetch() )
+    {
+        it_.reset( new detail::StmtIterator< Stmt, typename std::decay< decltype( stmt.cols() ) >::type >{ stmt } );
+    }
+}
+
+template< typename Cols >
+void ResultSetIterator< Cols >::increment()
+{
+    if ( !it_->increment() )
+    {
+        it_.reset();
+    }
+}
+
+template< typename Cols >
+bool ResultSetIterator< Cols >::equal( const ResultSetIterator& other ) const
+{
+    return it_ == other.it_;
+}
+
+template< typename Cols >
+const Cols& ResultSetIterator< Cols >::dereference() const
+{
+    return it_->dereference();
 }
 
 template< typename Cols >
@@ -136,13 +124,13 @@ inline ResultSet< Cols >::ResultSet( Stmt& stmt )
 }
 
 template< typename Cols >
-inline const typename ResultSet< Cols >::Iterator& ResultSet< Cols >::begin() const
+inline const ResultSetIterator< Cols >& ResultSet< Cols >::begin() const
 {
     return begin_;
 }
 
 template< typename Cols >
-inline constexpr typename ResultSet< Cols >::Iterator ResultSet< Cols >::end() const
+inline ResultSetIterator< Cols > ResultSet< Cols >::end() const
 {
     return {};
 }
