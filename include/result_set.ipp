@@ -27,12 +27,6 @@ namespace rodbc
 namespace detail
 {
 
-template< typename Stmt >
-inline StmtExec::StmtExec( Stmt& stmt )
-{
-    stmt.exec();
-}
-
 template< typename Stmt, typename Cols >
 inline StmtIterator< Stmt, Cols >::StmtIterator( Stmt& stmt )
 : stmt_( stmt )
@@ -86,8 +80,10 @@ inline const Cols& StmtIterator< Stmt, std::vector< Cols > >::dereference() cons
 
 template< typename Cols >
 template< typename Stmt >
-inline ResultSetIterator< Cols >::ResultSetIterator( const detail::StmtFetch&, Stmt& stmt )
+inline ResultSetIterator< Cols >::ResultSetIterator( const detail::StmtTag&, Stmt& stmt )
 {
+    stmt.exec();
+
     if ( stmt.fetch() )
     {
         it_.reset( new detail::StmtIterator< Stmt, typename std::decay< decltype( stmt.cols() ) >::type >{ stmt } );
@@ -118,8 +114,7 @@ const Cols& ResultSetIterator< Cols >::dereference() const
 template< typename Cols >
 template< typename Stmt >
 inline ResultSet< Cols >::ResultSet( Stmt& stmt )
-: StmtExec{ stmt }
-, begin_{ detail::StmtFetch{}, stmt }
+: begin_{ detail::StmtTag{}, stmt }
 {
 }
 

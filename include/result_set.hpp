@@ -31,13 +31,7 @@ namespace rodbc
 namespace detail
 {
 
-struct StmtExec
-{
-    template< typename Stmt >
-    StmtExec( Stmt& stmt );
-};
-
-struct StmtFetch
+struct StmtTag
 {
 };
 
@@ -89,7 +83,7 @@ private:
     ResultSetIterator() = default;
 
     template< typename Stmt >
-    ResultSetIterator( const detail::StmtFetch&, Stmt& stmt );
+    ResultSetIterator( const detail::StmtTag&, Stmt& stmt );
 
 private:
     friend class boost::iterator_core_access;
@@ -106,7 +100,7 @@ private:
  * @brief The ResultSet class template
  */
 template< typename Cols >
-class ResultSet : private detail::StmtExec
+class ResultSet
 {
 public:
     template< typename Stmt >
