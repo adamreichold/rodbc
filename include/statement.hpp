@@ -180,8 +180,9 @@ public:
 
 private:
     void* stmt_;
-    std::size_t param_;
-    std::size_t col_;
+    unsigned short param_;
+    unsigned short col_;
+    bool pos_;
 
     Statement& doBindStringParam( const char* const data, const std::size_t length, const long* const indicator );
     Statement& doBindStringCol( char* const data, const std::size_t length, long* const indicator );

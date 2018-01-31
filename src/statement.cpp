@@ -78,6 +78,7 @@ DEF_ODBC_TRAITS( Timestamp, SQL_TIMESTAMP_STRUCT, SQL_C_TIMESTAMP, SQL_TIMESTAMP
 Statement::Statement( Connection& conn, const char* const stmt )
 : param_{ 0 }
 , col_{ 0 }
+, pos_{ false }
 {
    check( ::SQLAllocHandle( SQL_HANDLE_STMT, conn.dbc_, &stmt_ ), SQL_HANDLE_DBC, conn.dbc_ );
    check( ::SQLPrepare( stmt_, (SQLCHAR*) stmt, SQL_NTS ), SQL_HANDLE_STMT, stmt_ );
@@ -96,6 +97,7 @@ Statement::~Statement()
 Statement::Statement( Statement&& that ) noexcept
 : param_{ that.param_ }
 , col_{ that.col_ }
+, pos_{ that.pos_ }
 {
     stmt_ = that.stmt_;
     that.stmt_ = nullptr;
@@ -104,8 +106,10 @@ Statement::Statement( Statement&& that ) noexcept
 Statement& Statement::operator= ( Statement&& that ) noexcept
 {
     std::swap( stmt_, that.stmt_ );
-    std::swap( param_, that.param_ );
-    std::swap( col_, that.col_ );
+
+    param_ = that.param_;
+    col_ = that.col_;
+    pos_ = that.pos_;
 
     return *this;
 }
@@ -186,13 +190,19 @@ Statement& Statement::rebindCols()
 
 void Statement::exec()
 {
-    check( ::SQLFreeStmt( stmt_, SQL_CLOSE ), SQL_HANDLE_STMT, stmt_ );
+    if ( pos_ )
+    {
+        check( ::SQLFreeStmt( stmt_, SQL_CLOSE ), SQL_HANDLE_STMT, stmt_ );
+
+        pos_ = false;
+    }
+
     check( ::SQLExecute( stmt_ ), SQL_HANDLE_STMT, stmt_ );
 }
 
 bool Statement::fetch()
 {
-    return check( ::SQLFetch( stmt_ ), SQL_HANDLE_STMT, stmt_ ) != SQL_NO_DATA;
+    return pos_ = check( ::SQLFetch( stmt_ ), SQL_HANDLE_STMT, stmt_ ) != SQL_NO_DATA;
 }
 
 Statement& Statement::doBindStringParam( const char* const data, const std::size_t length , const long* const indicator )
