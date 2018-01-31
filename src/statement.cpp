@@ -202,7 +202,11 @@ void Statement::exec()
 
 bool Statement::fetch()
 {
-    return pos_ = check( ::SQLFetch( stmt_ ), SQL_HANDLE_STMT, stmt_ ) != SQL_NO_DATA;
+    const bool result = check( ::SQLFetch( stmt_ ), SQL_HANDLE_STMT, stmt_ ) != SQL_NO_DATA;
+
+    pos_ = true;
+
+    return result;
 }
 
 Statement& Statement::doBindStringParam( const char* const data, const std::size_t length , const long* const indicator )

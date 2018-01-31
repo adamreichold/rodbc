@@ -188,7 +188,7 @@ inline void TypedStatement< Params, std::vector< Cols > >::exec()
 template< typename Params, typename Cols >
 inline bool TypedStatement< Params, std::vector< Cols > >::fetch()
 {
-    if ( !stmt_.fetch() )
+    if ( cols_.size() != cols_.capacity() || !stmt_.fetch() )
     {
         return false;
     }
