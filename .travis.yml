@@ -36,4 +36,4 @@ script:
   - mkdir build && cd build
   - cmake -G Ninja "-DBOOST_ROOT=$HOME/boost-1.58.0" "$DB_CONFIG" ..
   - ninja
-  - ctest
+  - ctest -V
