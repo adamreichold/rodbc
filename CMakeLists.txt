@@ -10,6 +10,13 @@ if( NOT CMAKE_BUILD_TYPE MATCHES Debug )
     set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto" )
 endif()
 
+set( RODBC_SANITIZER "" CACHE STRING "Sanitizer for building library and tests." )
+if( NOT RODBC_SANITIZER STREQUAL "" )
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${RODBC_SANITIZER}" )
+    set( CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${RODBC_SANITIZER}" )
+    set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${RODBC_SANITIZER}" )
+endif()
+
 find_package( Boost 1.58 COMPONENTS thread REQUIRED )
 include_directories( include ${Boost_INCLUDE_DIR} )
 
