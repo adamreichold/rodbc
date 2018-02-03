@@ -29,7 +29,7 @@ namespace rodbc
  * @brief The TypedStatement class template
  */
 template< typename Params, typename Cols >
-class TypedStatement
+class TypedStatement : private boost::noncopyable
 {
 public:
     TypedStatement( Connection& conn, const char* const stmt );
@@ -48,7 +48,7 @@ private:
 };
 
 template< typename Params >
-class TypedStatement< std::vector< Params >, std::tuple<> >
+class TypedStatement< std::vector< Params >, std::tuple<> > : private boost::noncopyable
 {
 public:
     TypedStatement( Connection& conn, const char* const stmt );
@@ -69,7 +69,7 @@ private:
 };
 
 template< typename Params, typename Cols >
-class TypedStatement< Params, std::vector< Cols > >
+class TypedStatement< Params, std::vector< Cols > > : private boost::noncopyable
 {
 public:
     TypedStatement( Connection& conn, const char* const stmt, const std::size_t fetchSize );
